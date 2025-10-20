@@ -1,7 +1,10 @@
-﻿using System.Globalization;
+﻿using System.Drawing;
+using System.Globalization;
 using System.Windows.Forms;
 using API.Clients;
 using DTOs;
+using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace WindowsForm;
 
@@ -10,15 +13,22 @@ public partial class FormProductoEditar : Form
     readonly bool _edit;
     readonly ProductoDTO _dto;
 
-    ComboBox cmbCategoria = new() { Dock = DockStyle.Top, DropDownStyle = ComboBoxStyle.DropDownList };
-    TextBox txtNombre = new() { PlaceholderText = "Nombre", Dock = DockStyle.Top };
-    TextBox txtDescripcion = new() { PlaceholderText = "Descripción", Dock = DockStyle.Top, Multiline = true, Height = 70 };
-    TextBox txtStock = new() { PlaceholderText = "Stock (entero >=0)", Dock = DockStyle.Top };
-    TextBox txtPrecio = new() { PlaceholderText = "Precio actual (decimal >=0)", Dock = DockStyle.Top };
+    // Panel principal para centrar y ordenar todos los elementos
+    FlowLayoutPanel pnlMain = new() { Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, AutoScroll = true, Padding = new Padding(20), BackColor = Color.White };
 
-    Button btnContinuar = new() { Text = "Continuar", Dock = DockStyle.Top, Height = 40 };
-    Button btnVolver = new() { Text = "Volver", Dock = DockStyle.Top, Height = 40 };
-    Button btnCancelar = new() { Text = "Cancelar", Dock = DockStyle.Top, Height = 40 };
+    const int CTRL_WIDTH = 300;
+
+    // Controles de entrada
+    ComboBox cmbCategoria = new() { Text = "Seleccione Categoría", DropDownStyle = ComboBoxStyle.DropDownList, Height = 25, Width = CTRL_WIDTH };
+    TextBox txtNombre = new() { PlaceholderText = "Nombre", Height = 25, Width = CTRL_WIDTH };
+    TextBox txtDescripcion = new() { PlaceholderText = "Descripción", Multiline = true, Height = 70, Width = CTRL_WIDTH };
+    TextBox txtStock = new() { PlaceholderText = "Stock (entero >=0)", Height = 25, Width = CTRL_WIDTH };
+    TextBox txtPrecio = new() { PlaceholderText = "Precio actual (decimal >=0)", Height = 25, Width = CTRL_WIDTH };
+
+    // Botones con ANCHO FIJO y ALTURA ESTANDAR
+    Button btnContinuar = new() { Text = "Continuar", Height = 40, Width = CTRL_WIDTH };
+    Button btnVolver = new() { Text = "Volver", Height = 40, Width = CTRL_WIDTH };
+    Button btnCancelar = new() { Text = "Cancelar", Height = 40, Width = CTRL_WIDTH };
 
     record Item(int Id, string Nombre);
 
@@ -30,15 +40,32 @@ public partial class FormProductoEditar : Form
 
         Text = _edit ? "Modificar producto" : "Agregar producto";
         Width = 520; Height = 560; StartPosition = FormStartPosition.CenterParent;
+        BackColor = Color.FromArgb(245, 247, 250);
 
-        Controls.Add(btnCancelar);
-        Controls.Add(btnVolver);
-        Controls.Add(btnContinuar);
-        Controls.Add(txtPrecio);
-        Controls.Add(txtStock);
-        Controls.Add(txtDescripcion);
-        Controls.Add(txtNombre);
-        Controls.Add(cmbCategoria);
+        Controls.Add(pnlMain);
+
+        // 1. Agregar los CONTROLES DE ENTRADA (los campos)
+        pnlMain.Controls.AddRange(new Control[] {
+            cmbCategoria, txtNombre, txtDescripcion, txtStock, txtPrecio
+        });
+
+        // 2. Agregar los BOTONES
+        pnlMain.Controls.AddRange(new Control[] { btnContinuar, btnVolver, btnCancelar });
+
+        // 3. Aplicar ESTILO y CENTRADO
+        ConfigurarEstiloBoton(btnContinuar);
+        ConfigurarEstiloBoton(btnVolver);
+        ConfigurarEstiloBoton(btnCancelar);
+
+        // Lógica de centrado (como en FormMenu)
+        pnlMain.Layout += (_, __) =>
+        {
+            // Centra horizontalmente todos los controles
+            foreach (Control ctrl in pnlMain.Controls)
+            {
+                ctrl.Margin = new Padding((pnlMain.ClientSize.Width - ctrl.Width) / 2, 6, 0, 6);
+            }
+        };
 
         Shown += async (_, __) =>
         {
@@ -55,6 +82,10 @@ public partial class FormProductoEditar : Form
                 txtPrecio.Text = _dto.PrecioActual.ToString(CultureInfo.InvariantCulture);
                 var idx = cats.FindIndex(x => x.Id == _dto.IdCatProducto);
                 if (idx >= 0) cmbCategoria.SelectedIndex = idx;
+            }
+            else
+            {
+                cmbCategoria.SelectedIndex = -1;
             }
         };
 
@@ -86,4 +117,23 @@ public partial class FormProductoEditar : Form
             catch (Exception ex) { MessageBox.Show($"Error: {ex.Message}"); }
         };
     }
+
+    private void ConfigurarEstiloBoton(Button boton)
+    {
+        boton.FlatStyle = FlatStyle.Flat;
+        boton.FlatAppearance.BorderSize = 0;
+        boton.BackColor = Color.FromArgb(52, 152, 219);
+        boton.ForeColor = Color.White;
+        boton.Font = new Font("Segoe UI", 11, FontStyle.Bold);
+        boton.Region = System.Drawing.Region.FromHrgn(CreateRoundRectRgn(0, 0, boton.Width, boton.Height, 15, 15));
+
+        // Hover
+        boton.MouseEnter += (_, __) => boton.BackColor = Color.FromArgb(41, 128, 185);
+        boton.MouseLeave += (_, __) => boton.BackColor = Color.FromArgb(52, 152, 219);
+    }
+
+    [DllImport("Gdi32.dll", EntryPoint = "CreateRoundRectRgn")]
+    private static extern IntPtr CreateRoundRectRgn(
+        int nLeftRect, int nTopRect, int nRightRect, int nBottomRect,
+        int nWidthEllipse, int nHeightEllipse);
 }

@@ -45,7 +45,8 @@ partial class FormCategorias
         btnAgregar.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         btnAgregar.Location = new System.Drawing.Point(494, 12);
         btnAgregar.Name = "btnAgregar";
-        btnAgregar.Size = new System.Drawing.Size(94, 23);
+        // Cambio la altura del botón a 40px para consistencia
+        btnAgregar.Size = new System.Drawing.Size(94, 40);
         btnAgregar.Text = "Agregar";
         btnAgregar.UseVisualStyleBackColor = true;
         // 
@@ -53,11 +54,11 @@ partial class FormCategorias
         // 
         grid.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
         grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-        grid.Location = new System.Drawing.Point(12, 50);
+        grid.Location = new System.Drawing.Point(12, 60); // Ajusto la ubicación para el botón más alto
         grid.Name = "grid";
         grid.ReadOnly = true;
         grid.RowTemplate.Height = 25;
-        grid.Size = new System.Drawing.Size(576, 388);
+        grid.Size = new System.Drawing.Size(576, 378); // Ajusto la altura
         grid.DataSource = bs;
         // 
         // FormCategorias

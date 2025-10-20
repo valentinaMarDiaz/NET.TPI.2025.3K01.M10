@@ -1,7 +1,9 @@
-﻿using System.Windows.Forms;
+﻿using System.Drawing;
+using System.Windows.Forms;
 using API.Clients;
 using DTOs;
 using WindowsForm.Utils;
+using System.Runtime.InteropServices;
 
 namespace WindowsForm;
 
@@ -9,22 +11,28 @@ public partial class FormUsuariosEditar : Form
 {
     readonly UsuarioDTO _dto;
 
-    TextBox txtNombre = new() { PlaceholderText = "Nombre", Dock = DockStyle.Top };
-    TextBox txtApellido = new() { PlaceholderText = "Apellido", Dock = DockStyle.Top };
-    TextBox txtEmail = new() { PlaceholderText = "Email", Dock = DockStyle.Top };
+    // Panel principal para centrar y ordenar todos los elementos
+    FlowLayoutPanel pnlMain = new() { Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, AutoScroll = true, Padding = new Padding(20), BackColor = Color.White };
+
+    const int CTRL_WIDTH = 300;
+
+    TextBox txtNombre = new() { PlaceholderText = "Nombre", Height = 25, Width = CTRL_WIDTH };
+    TextBox txtApellido = new() { PlaceholderText = "Apellido", Height = 25, Width = CTRL_WIDTH };
+    TextBox txtEmail = new() { PlaceholderText = "Email", Height = 25, Width = CTRL_WIDTH };
 
     // Cliente
-    TextBox txtTel = new() { PlaceholderText = "Teléfono (solo dígitos)", Dock = DockStyle.Top, Visible = false };
-    TextBox txtDir = new() { PlaceholderText = "Dirección", Dock = DockStyle.Top, Visible = false };
+    TextBox txtTel = new() { PlaceholderText = "Teléfono (solo dígitos)", Visible = false, Height = 25, Width = CTRL_WIDTH };
+    TextBox txtDir = new() { PlaceholderText = "Dirección", Visible = false, Multiline = true, Height = 70, Width = CTRL_WIDTH };
 
     // Vendedor
-    TextBox txtCuil = new() { PlaceholderText = "CUIL (solo dígitos)", Dock = DockStyle.Top, Visible = false };
+    TextBox txtCuil = new() { PlaceholderText = "CUIL (solo dígitos)", Visible = false, Height = 25, Width = CTRL_WIDTH };
 
-    Label lblTipo = new() { Dock = DockStyle.Top, Height = 20, TextAlign = System.Drawing.ContentAlignment.MiddleLeft };
+    Label lblTipo = new() { Height = 25, TextAlign = System.Drawing.ContentAlignment.MiddleLeft, Margin = new Padding(0, 5, 0, 5), Width = CTRL_WIDTH };
 
-    Button btnContinuar = new() { Text = "Continuar", Dock = DockStyle.Top, Height = 40 };
-    Button btnVolver = new() { Text = "Volver", Dock = DockStyle.Top, Height = 40 };
-    Button btnCancelar = new() { Text = "Cancelar", Dock = DockStyle.Top, Height = 40 };
+    // Botones con ANCHO FIJO y ALTURA ESTANDAR
+    Button btnContinuar = new() { Text = "Continuar", Height = 40, Width = CTRL_WIDTH };
+    Button btnVolver = new() { Text = "Volver", Height = 40, Width = CTRL_WIDTH };
+    Button btnCancelar = new() { Text = "Cancelar", Height = 40, Width = CTRL_WIDTH };
 
     public FormUsuariosEditar(UsuarioDTO existente)
     {
@@ -32,18 +40,33 @@ public partial class FormUsuariosEditar : Form
         _dto = existente;
 
         Text = "Modificar usuario";
-        Width = 420; Height = 420; StartPosition = FormStartPosition.CenterParent;
+        Width = 420; Height = 500; StartPosition = FormStartPosition.CenterParent;
+        BackColor = Color.FromArgb(245, 247, 250);
 
-        Controls.Add(btnCancelar);
-        Controls.Add(btnVolver);
-        Controls.Add(btnContinuar);
-        Controls.Add(txtCuil);
-        Controls.Add(txtDir);
-        Controls.Add(txtTel);
-        Controls.Add(txtEmail);
-        Controls.Add(txtApellido);
-        Controls.Add(txtNombre);
-        Controls.Add(lblTipo);
+        Controls.Add(pnlMain);
+
+        // 1. Agregar los CONTROLES DE ENTRADA (los campos)
+        pnlMain.Controls.AddRange(new Control[] {
+            lblTipo, txtNombre, txtApellido, txtEmail, txtTel, txtDir, txtCuil
+        });
+
+        // 2. Agregar los BOTONES
+        pnlMain.Controls.AddRange(new Control[] { btnContinuar, btnVolver, btnCancelar });
+
+        // 3. Aplicar ESTILO y CENTRADO
+        ConfigurarEstiloBoton(btnContinuar);
+        ConfigurarEstiloBoton(btnVolver);
+        ConfigurarEstiloBoton(btnCancelar);
+
+        // Lógica de centrado (como en FormMenu)
+        pnlMain.Layout += (_, __) =>
+        {
+            // Centra horizontalmente todos los controles
+            foreach (Control ctrl in pnlMain.Controls)
+            {
+                ctrl.Margin = new Padding((pnlMain.ClientSize.Width - ctrl.Width) / 2, 6, 0, 6);
+            }
+        };
 
         lblTipo.Text = $"Tipo: {_dto.TipoUsuario}";
         txtNombre.Text = _dto.Nombre;
@@ -67,7 +90,7 @@ public partial class FormUsuariosEditar : Form
 
         btnContinuar.Click += async (_, __) =>
         {
-            if (!Validators.EsEmailValido(txtEmail.Text)) { MessageBox.Show("Email inválido."); txtEmail.Focus(); return; }
+            if (!WindowsForm.Utils.Validators.EsEmailValido(txtEmail.Text)) { MessageBox.Show("Email inválido."); txtEmail.Focus(); return; }
 
             try
             {
@@ -77,14 +100,14 @@ public partial class FormUsuariosEditar : Form
 
                 if (_dto.TipoUsuario == "Cliente")
                 {
-                    if (!Validators.SoloDigitos(txtTel.Text)) { MessageBox.Show("Teléfono inválido."); txtTel.Focus(); return; }
+                    if (!WindowsForm.Utils.Validators.SoloDigitos(txtTel.Text)) { MessageBox.Show("Teléfono inválido."); txtTel.Focus(); return; }
                     if (string.IsNullOrWhiteSpace(txtDir.Text)) { MessageBox.Show("Dirección requerida."); txtDir.Focus(); return; }
                     _dto.Telefono = txtTel.Text.Trim();
                     _dto.Direccion = txtDir.Text.Trim();
                 }
                 else
                 {
-                    if (!Validators.SoloDigitos(txtCuil.Text)) { MessageBox.Show("CUIL inválido."); txtCuil.Focus(); return; }
+                    if (!WindowsForm.Utils.Validators.SoloDigitos(txtCuil.Text)) { MessageBox.Show("CUIL inválido."); txtCuil.Focus(); return; }
                     _dto.Cuil = txtCuil.Text.Trim();
                 }
 
@@ -95,4 +118,23 @@ public partial class FormUsuariosEditar : Form
             catch (Exception ex) { MessageBox.Show($"Error: {ex.Message}"); }
         };
     }
+
+    private void ConfigurarEstiloBoton(Button boton)
+    {
+        boton.FlatStyle = FlatStyle.Flat;
+        boton.FlatAppearance.BorderSize = 0;
+        boton.BackColor = Color.FromArgb(52, 152, 219);
+        boton.ForeColor = Color.White;
+        boton.Font = new Font("Segoe UI", 11, FontStyle.Bold);
+        boton.Region = System.Drawing.Region.FromHrgn(CreateRoundRectRgn(0, 0, boton.Width, boton.Height, 15, 15));
+
+        // Hover
+        boton.MouseEnter += (_, __) => boton.BackColor = Color.FromArgb(41, 128, 185);
+        boton.MouseLeave += (_, __) => boton.BackColor = Color.FromArgb(52, 152, 219);
+    }
+
+    [DllImport("Gdi32.dll", EntryPoint = "CreateRoundRectRgn")]
+    private static extern IntPtr CreateRoundRectRgn(
+        int nLeftRect, int nTopRect, int nRightRect, int nBottomRect,
+        int nWidthEllipse, int nHeightEllipse);
 }

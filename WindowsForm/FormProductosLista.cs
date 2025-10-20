@@ -8,17 +8,25 @@ public partial class FormProductosLista : Form
 {
     DataGridView grid = new() { Dock = DockStyle.Fill, ReadOnly = true, AutoGenerateColumns = true };
     BindingSource bs = new();
-    FlowLayoutPanel pnl = new() { Dock = DockStyle.Top, Height = 48 };
-    Button btnAgregar = new() { Text = "Agregar" };
-    Button btnModificar = new() { Text = "Modificar" };
-    Button btnEliminar = new() { Text = "Eliminar" };
-    Button btnSalir = new() { Text = "Salir" };
+    // Estandarizado con padding y altura para botones de 36px
+    FlowLayoutPanel pnl = new() { Dock = DockStyle.Top, Height = 56, Padding = new Padding(10, 10, 0, 0) };
+    Button btnAgregar = new() { Text = "Agregar", Height = 36 };
+    Button btnModificar = new() { Text = "Modificar", Height = 36 };
+    Button btnEliminar = new() { Text = "Eliminar", Height = 36 };
+    Button btnSalir = new() { Text = "Salir", Height = 36 };
 
     public FormProductosLista()
     {
         InitializeComponent();
         Text = "Productos";
         Width = 900; Height = 520; StartPosition = FormStartPosition.CenterParent;
+
+        // Aseguro ancho y margen de botones para consistencia
+        foreach (var btn in new[] { btnAgregar, btnModificar, btnEliminar, btnSalir })
+        {
+            btn.Width = 100;
+            btn.Margin = new Padding(0, 0, 10, 0);
+        }
 
         pnl.Controls.AddRange(new Control[] { btnAgregar, btnModificar, btnEliminar, btnSalir });
         Controls.Add(grid);

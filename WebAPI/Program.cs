@@ -2,6 +2,8 @@ using Application.Services;
 using DTOs;
 using Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.OpenApi;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -127,6 +129,52 @@ app.MapDelete("/productos/{id:int}", (int id) =>
 app.MapGet("/productos/{id:int}/historial", (int id) =>
     Results.Ok(new ProductoService().GetHistorial(id))
 );
+
+
+// -------- CARRITO --------
+app.MapGet("/carrito/{idCliente:int}", (int idCliente) =>
+{
+    var s = new CarritoService();
+    return Results.Ok(s.GetAbierto(idCliente));
+}).WithOpenApi();
+
+app.MapPost("/carrito/agregar", (AgregarCarritoDTO dto) =>
+{
+    try { return Results.Ok(new CarritoService().Add(dto)); }
+    catch (ArgumentException ex) { return Results.BadRequest(new { error = ex.Message }); }
+}).WithOpenApi();
+
+app.MapDelete("/carrito/item", (int idCliente, int idProducto) =>
+{
+    try { return Results.Ok(new CarritoService().Remove(new EliminarItemCarritoDTO { IdCliente = idCliente, IdProducto = idProducto })); }
+    catch (ArgumentException ex) { return Results.BadRequest(new { error = ex.Message }); }
+}).WithOpenApi();
+
+// confirmar carrito ? crea venta
+app.MapPost("/carrito/confirmar", (ConfirmarCarritoDTO dto) =>
+{
+    try { return Results.Ok(new VentaService().Confirmar(dto.IdCliente)); }
+    catch (ArgumentException ex) { return Results.BadRequest(new { error = ex.Message }); }
+}).WithOpenApi();
+
+// -------- VENTAS --------
+app.MapGet("/ventas", (int? idCliente, DateTime? desdeUtc, DateTime? hastaUtc) =>
+{
+    var filtro = new VentaFiltroDTO { IdCliente = idCliente, DesdeUtc = desdeUtc, HastaUtc = hastaUtc };
+    return Results.Ok(new VentaService().List(filtro));
+}).WithOpenApi();
+
+app.MapGet("/ventas/{id:int}", (int id) =>
+{
+    var dto = new VentaService().Get(id);
+    return dto is null ? Results.NotFound() : Results.Ok(dto);
+}).WithOpenApi();
+
+app.MapDelete("/ventas/{id:int}", (int id) =>
+{
+    try { new VentaService().Delete(id); return Results.NoContent(); }
+    catch (ArgumentException ex) { return Results.BadRequest(new { error = ex.Message }); }
+}).WithOpenApi();
 
 
 app.Run();

@@ -13,6 +13,10 @@ public class TPIContext : DbContext
     public DbSet<PrecioProducto> PreciosProductos => Set<PrecioProducto>();
 
     public DbSet<CategoriaProducto> Categorias => Set<CategoriaProducto>();
+    public DbSet<Carrito> Carritos => Set<Carrito>();
+    public DbSet<CarritoItem> CarritoItems => Set<CarritoItem>();
+    public DbSet<Venta> Ventas => Set<Venta>();
+    public DbSet<VentaDetalle> VentaDetalles => Set<VentaDetalle>();
 
     public TPIContext() { }
     public TPIContext(DbContextOptions<TPIContext> options) : base(options) { }
@@ -106,7 +110,55 @@ public class TPIContext : DbContext
              .HasForeignKey(x => x.IdProducto)
              .OnDelete(DeleteBehavior.Cascade); // al borrar producto, se borra su historial
         });
-    }
+        mb.Entity<Carrito>(e =>
+        {
+            e.ToTable("Carritos");
+            e.HasKey(x => x.IdCarrito);
+            e.Property(x => x.Estado).HasMaxLength(20).IsRequired();
+            e.HasIndex(x => new { x.IdCliente, x.Estado }).HasDatabaseName("IX_Carrito_Cliente_Estado");
+            // si quisieras impedir más de 1 abierto por cliente a nivel DB, podrías usar un trigger/check; acá lo controlamos en servicio.
+        });
 
+        mb.Entity<CarritoItem>(e =>
+        {
+            e.ToTable("CarritoItems");
+            e.HasKey(x => x.IdCarritoItem);
+            e.Property(x => x.Cantidad).IsRequired();
+            e.HasOne<Carrito>()
+             .WithMany()
+             .HasForeignKey(x => x.IdCarrito)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Producto>()
+             .WithMany()
+             .HasForeignKey(x => x.IdProducto)
+             .OnDelete(DeleteBehavior.Restrict); // no borrar producto si está en carritos
+            e.HasIndex(x => new { x.IdCarrito, x.IdProducto }).IsUnique();
+        });
+
+        // Ventas
+        mb.Entity<Venta>(e =>
+        {
+            e.ToTable("Ventas");
+            e.HasKey(x => x.IdVenta);
+            e.Property(x => x.FechaHoraVentaUtc).IsRequired();
+        });
+
+        mb.Entity<VentaDetalle>(e =>
+        {
+            e.ToTable("VentaDetalles");
+            e.HasKey(x => x.IdVentaDetalle);
+            e.Property(x => x.PrecioUnitario).HasColumnType("decimal(18,2)").IsRequired();
+            e.HasOne<Venta>()
+             .WithMany()
+             .HasForeignKey(x => x.IdVenta)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Producto>()
+             .WithMany()
+             .HasForeignKey(x => x.IdProducto)
+             .OnDelete(DeleteBehavior.Restrict);
+        });
+    }
 }
+
+
 

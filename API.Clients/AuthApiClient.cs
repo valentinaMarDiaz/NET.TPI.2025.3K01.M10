@@ -1,38 +1,40 @@
-﻿using System.Net.Http.Headers;
+﻿using System;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Threading.Tasks;
 using DTOs;
 
-namespace API.Clients;
-
-public static class AuthApiClient
+namespace API.Clients
 {
-    private static readonly HttpClient client;
-
-    static AuthApiClient()
+    public static class AuthApiClient
     {
-        client = new HttpClient { BaseAddress = new Uri("http://localhost:5247/") }; // <-- tu puerto http
-        client.DefaultRequestHeaders.Accept.Clear();
-        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-    }
+        static readonly HttpClient client = new();
 
-    public static async Task<LoginResponseDTO> RegisterClienteAsync(RegisterClienteDTO dto)
-    {
-        var res = await client.PostAsJsonAsync("auth/register/cliente", dto);
-        res.EnsureSuccessStatusCode();
-        return await res.Content.ReadFromJsonAsync<LoginResponseDTO>() ?? new LoginResponseDTO();
-    }
+        static AuthApiClient()
+        {
+            client.BaseAddress = new Uri("http://localhost:5247/"); // usa el puerto de tu WebAPI
+            client.DefaultRequestHeaders.Accept.Clear();
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        }
 
-    public static async Task<LoginResponseDTO> RegisterVendedorAsync(RegisterVendedorDTO dto)
-    {
-        var res = await client.PostAsJsonAsync("auth/register/vendedor", dto);
-        res.EnsureSuccessStatusCode();
-        return await res.Content.ReadFromJsonAsync<LoginResponseDTO>() ?? new LoginResponseDTO();
-    }
+        public static async Task<LoginResponseDTO?> LoginAsync(LoginRequestDTO dto)
+        {
+            var resp = await client.PostAsJsonAsync("auth/login", dto);
+            if (!resp.IsSuccessStatusCode) return null;
+            return await resp.Content.ReadFromJsonAsync<LoginResponseDTO>();
+        }
 
-    public static async Task<LoginResponseDTO?> LoginAsync(LoginRequestDTO dto)
-    {
-        var res = await client.PostAsJsonAsync("auth/login", dto);
-        if (!res.IsSuccessStatusCode) return null;
-        return await res.Content.ReadFromJsonAsync<LoginResponseDTO>();
+        public static async Task RegisterClienteAsync(RegisterClienteDTO dto)
+        {
+            var resp = await client.PostAsJsonAsync("auth/register/cliente", dto);
+            resp.EnsureSuccessStatusCode();
+        }
+
+        public static async Task RegisterVendedorAsync(RegisterVendedorDTO dto)
+        {
+            var resp = await client.PostAsJsonAsync("auth/register/vendedor", dto);
+            resp.EnsureSuccessStatusCode();
+        }
     }
 }

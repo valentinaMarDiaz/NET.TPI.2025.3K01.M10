@@ -1,6 +1,6 @@
 ﻿namespace WindowsForm
 {
-    partial class FormLogin
+    partial class FormCarrito
     {
         /// <summary>
         /// Required designer variable.
@@ -31,7 +31,7 @@
             this.components = new System.ComponentModel.Container();
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 450);
-            this.Text = "FormLogin";
+            this.Text = "FormCarrito";
         }
 
         #endregion

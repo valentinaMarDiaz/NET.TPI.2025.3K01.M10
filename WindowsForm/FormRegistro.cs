@@ -1,150 +1,230 @@
 ﻿using System.Drawing;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using API.Clients;
 using DTOs;
-using WindowsForm.Utils;
-using System.Runtime.InteropServices;
 
 namespace WindowsForm;
 
 public partial class FormRegistro : Form
 {
-    // Panel principal para centrar y ordenar todos los elementos
-    FlowLayoutPanel pnlMain = new() { Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, AutoScroll = true, Padding = new Padding(20), BackColor = Color.White };
+    public LoginResponseDTO? User { get; private set; }
 
-    // Ancho estandarizado para todos los controles
-    const int CTRL_WIDTH = 300;
+    readonly Label titulo = new()
+    {
+        Text = "Registro",
+        Dock = DockStyle.Top,
+        Height = 50,
+        Font = new Font("Segoe UI", 16, FontStyle.Bold),
+        ForeColor = Color.FromArgb(45, 62, 80),
+        TextAlign = ContentAlignment.MiddleCenter
+    };
 
-    // Controles de entrada (todos con ancho fijo)
-    ComboBox cmbTipo = new() { Text = "Seleccione tipo de usuario", DropDownStyle = ComboBoxStyle.DropDownList, Height = 25, Width = CTRL_WIDTH };
-    TextBox txtNombre = new() { PlaceholderText = "Nombre", Height = 25, Width = CTRL_WIDTH };
-    TextBox txtApellido = new() { PlaceholderText = "Apellido", Height = 25, Width = CTRL_WIDTH };
-    TextBox txtEmail = new() { PlaceholderText = "Email", Height = 25, Width = CTRL_WIDTH };
-    TextBox txtPass = new() { PlaceholderText = "Contraseña", UseSystemPasswordChar = true, Height = 25, Width = CTRL_WIDTH };
+    // Rol
+    readonly RadioButton rbCliente = new() { Text = "Cliente", Checked = true, AutoSize = true };
+    readonly RadioButton rbVendedor = new() { Text = "Vendedor", AutoSize = true };
+
+    // Comunes
+    readonly TextBox txtNombre = new() { Width = 260 };
+    readonly TextBox txtApellido = new() { Width = 260 };
+    readonly TextBox txtEmail = new() { Width = 260 };
+    readonly TextBox txtPassword = new() { Width = 260, UseSystemPasswordChar = true };
 
     // Cliente
-    TextBox txtTel = new() { PlaceholderText = "Teléfono (solo dígitos)", Visible = false, Height = 25, Width = CTRL_WIDTH };
-    TextBox txtDir = new() { PlaceholderText = "Dirección", Visible = false, Multiline = true, Height = 70, Width = CTRL_WIDTH };
+    readonly Panel pnlCliente = new() { AutoSize = true, Dock = DockStyle.Fill };
+    readonly TextBox txtTelefono = new() { Width = 260 };
+    readonly TextBox txtDireccion = new() { Width = 260 };
 
     // Vendedor
-    TextBox txtCuil = new() { PlaceholderText = "CUIL (solo dígitos)", Visible = false, Height = 25, Width = CTRL_WIDTH };
+    readonly Panel pnlVendedor = new() { AutoSize = true, Dock = DockStyle.Fill };
+    readonly TextBox txtCuil = new() { Width = 260 };
 
-    // Botones con ANCHO FIJO y ALTURA ESTANDAR
-    Button btnContinuar = new() { Text = "Continuar", Height = 40, Width = CTRL_WIDTH };
-    Button btnVolver = new() { Text = "Volver", Height = 40, Width = CTRL_WIDTH };
-    Button btnCancelar = new() { Text = "Cancelar", Height = 40, Width = CTRL_WIDTH };
+    readonly Button btnRegistrar = new() { Text = "Registrar", Height = 40, Width = 160 };
+    readonly Button btnCancelar = new() { Text = "Cancelar", Height = 40, Width = 160 };
 
     public FormRegistro()
     {
         InitializeComponent();
+
         Text = "Registro";
-        Width = 420; Height = 600; StartPosition = FormStartPosition.CenterParent;
+        Width = 560;
+        Height = 520;
+        StartPosition = FormStartPosition.CenterParent;
         BackColor = Color.FromArgb(245, 247, 250);
 
-        Controls.Add(pnlMain);
-
-        // 1. Agregar los CONTROLES DE ENTRADA (los campos)
-        pnlMain.Controls.AddRange(new Control[] {
-            cmbTipo, txtNombre, txtApellido, txtEmail, txtPass, txtTel, txtDir, txtCuil
-        });
-
-        // 2. Agregar los BOTONES
-        pnlMain.Controls.AddRange(new Control[] { btnContinuar, btnVolver, btnCancelar });
-
-        // 3. Aplicar ESTILO y CENTRADO
-        ConfigurarEstiloBoton(btnContinuar);
-        ConfigurarEstiloBoton(btnVolver);
-        ConfigurarEstiloBoton(btnCancelar);
-
-        // Lógica de centrado (como en FormMenu)
-        pnlMain.Layout += (_, __) =>
+        var root = new TableLayoutPanel
         {
-            // Centra horizontalmente todos los controles
-            foreach (Control ctrl in pnlMain.Controls)
-            {
-                ctrl.Margin = new Padding((pnlMain.ClientSize.Width - ctrl.Width) / 2, 6, 0, 6);
-            }
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            Padding = new Padding(24),
+            BackColor = Color.White,
+            AutoScroll = true
         };
+        root.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
 
-        // Configuración inicial del ComboBox 
-        cmbTipo.Items.AddRange(new[] { "Cliente", "Vendedor" });
-        cmbTipo.SelectedIndex = 0;
+        // Fila rol
+        var panelRol = new FlowLayoutPanel { FlowDirection = FlowDirection.LeftToRight, AutoSize = true };
+        panelRol.Controls.AddRange(new Control[] { rbCliente, rbVendedor });
+        root.Controls.Add(new Label { Text = "Rol", AutoSize = true, Font = new Font("Segoe UI", 10) }, 0, 0);
+        root.Controls.Add(panelRol, 1, 0);
 
-        cmbTipo.SelectedIndexChanged += (_, __) =>
+        int row = 1;
+        void add(string label, Control ctrl)
         {
-            var t = cmbTipo.SelectedItem?.ToString();
-            bool esCliente = t == "Cliente";
-            txtTel.Visible = txtDir.Visible = esCliente;
-            txtCuil.Visible = !esCliente;
-        };
+            root.Controls.Add(new Label { Text = label, AutoSize = true, Font = new Font("Segoe UI", 10) }, 0, row);
+            root.Controls.Add(ctrl, 1, row);
+            row++;
+        }
 
-        btnVolver.Click += (_, __) => Close();
-        btnCancelar.Click += (_, __) => Application.Exit();
+        // Comunes
+        add("Nombre", txtNombre);
+        add("Apellido", txtApellido);
+        add("Email", txtEmail);
+        add("Contraseña", txtPassword);
 
-        btnContinuar.Click += async (_, __) =>
+        // Panel cliente
+        pnlCliente.Controls.Add(MakeRow("Teléfono (Cliente)", txtTelefono));
+        pnlCliente.Controls.Add(MakeRow("Dirección (Cliente)", txtDireccion));
+        root.Controls.Add(new Label { Text = "", AutoSize = true }, 0, row);
+        root.Controls.Add(pnlCliente, 1, row++);
+        // Panel vendedor
+        pnlVendedor.Controls.Add(MakeRow("CUIL (Vendedor)", txtCuil));
+        root.Controls.Add(new Label { Text = "", AutoSize = true }, 0, row);
+        root.Controls.Add(pnlVendedor, 1, row++);
+
+        var botones = new FlowLayoutPanel { FlowDirection = FlowDirection.LeftToRight, Dock = DockStyle.Fill };
+        botones.Controls.AddRange(new Control[] { btnRegistrar, btnCancelar });
+        root.Controls.Add(new Label { Text = "", AutoSize = true }, 0, row);
+        root.Controls.Add(botones, 1, row);
+
+        Controls.Add(root);
+        Controls.Add(titulo);
+
+        EstiloBotonAzul(btnRegistrar);
+        EstiloBotonAzul(btnCancelar);
+
+        // Toggle inicial y eventos
+        void TogglePorRol()
         {
-            var tipo = cmbTipo.SelectedItem?.ToString();
-            if (!WindowsForm.Utils.Validators.TipoUsuarioValido(tipo)) { MessageBox.Show("Tipo inválido."); return; }
-            if (!WindowsForm.Utils.Validators.EsEmailValido(txtEmail.Text)) { MessageBox.Show("Email inválido."); txtEmail.Focus(); return; }
-            if (string.IsNullOrWhiteSpace(txtPass.Text) || txtPass.Text.Length < 4) { MessageBox.Show("Contraseña muy corta."); txtPass.Focus(); return; }
+            bool esCliente = rbCliente.Checked;
+            pnlCliente.Visible = esCliente;
+            pnlVendedor.Visible = !esCliente;
+        }
+        rbCliente.CheckedChanged += (_, __) => TogglePorRol();
+        rbVendedor.CheckedChanged += (_, __) => TogglePorRol();
+        TogglePorRol();
 
+        btnRegistrar.Click += async (_, __) =>
+        {
             try
             {
-                if (tipo == "Cliente")
+                // Validaciones básicas
+                if (string.IsNullOrWhiteSpace(txtNombre.Text) ||
+                    string.IsNullOrWhiteSpace(txtApellido.Text) ||
+                    string.IsNullOrWhiteSpace(txtEmail.Text) ||
+                    string.IsNullOrWhiteSpace(txtPassword.Text))
                 {
-                    if (!WindowsForm.Utils.Validators.SoloDigitos(txtTel.Text)) { MessageBox.Show("Teléfono inválido."); txtTel.Focus(); return; }
-                    if (string.IsNullOrWhiteSpace(txtDir.Text)) { MessageBox.Show("Dirección requerida."); txtDir.Focus(); return; }
+                    MessageBox.Show("Completá Nombre, Apellido, Email y Contraseña.");
+                    return;
+                }
+
+                var email = txtEmail.Text.Trim();
+                var pass = txtPassword.Text;
+
+                if (rbCliente.Checked)
+                {
+                    if (string.IsNullOrWhiteSpace(txtTelefono.Text) || string.IsNullOrWhiteSpace(txtDireccion.Text))
+                    {
+                        MessageBox.Show("Para cliente, completá Teléfono y Dirección.");
+                        return;
+                    }
 
                     var dto = new RegisterClienteDTO
                     {
                         Nombre = txtNombre.Text.Trim(),
                         Apellido = txtApellido.Text.Trim(),
-                        Email = txtEmail.Text.Trim(),
-                        Password = txtPass.Text,
-                        Telefono = txtTel.Text.Trim(),
-                        Direccion = txtDir.Text.Trim()
+                        Email = email,
+                        Password = pass,
+                        Telefono = txtTelefono.Text.Trim(),
+                        Direccion = txtDireccion.Text.Trim()
                     };
                     await AuthApiClient.RegisterClienteAsync(dto);
-                    MessageBox.Show("Cliente registrado.");
                 }
                 else
                 {
-                    if (!WindowsForm.Utils.Validators.SoloDigitos(txtCuil.Text)) { MessageBox.Show("CUIL inválido."); txtCuil.Focus(); return; }
+                    if (string.IsNullOrWhiteSpace(txtCuil.Text))
+                    {
+                        MessageBox.Show("Para vendedor, completá CUIL.");
+                        return;
+                    }
 
                     var dto = new RegisterVendedorDTO
                     {
                         Nombre = txtNombre.Text.Trim(),
                         Apellido = txtApellido.Text.Trim(),
-                        Email = txtEmail.Text.Trim(),
-                        Password = txtPass.Text,
+                        Email = email,
+                        Password = pass,
                         Cuil = txtCuil.Text.Trim()
                     };
-                    var resp = await AuthApiClient.RegisterVendedorAsync(dto);
-                    MessageBox.Show($"Vendedor registrado. Legajo {resp.Legajo}.");
+                    await AuthApiClient.RegisterVendedorAsync(dto);
                 }
+
+                // login automático
+                var resp = await AuthApiClient.LoginAsync(new LoginRequestDTO { Email = email, Password = pass });
+                if (resp is null)
+                {
+                    MessageBox.Show("Registro OK, pero no se pudo iniciar sesión.");
+                    return;
+                }
+
+                User = resp;
                 DialogResult = DialogResult.OK;
                 Close();
             }
-            catch (Exception ex) { MessageBox.Show($"Error al registrar: {ex.Message}"); }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Error al registrar", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        };
+
+        btnCancelar.Click += (_, __) =>
+        {
+            DialogResult = DialogResult.Cancel;
+            Close();
         };
     }
 
-    private void ConfigurarEstiloBoton(Button boton)
-    {
-        boton.FlatStyle = FlatStyle.Flat;
-        boton.FlatAppearance.BorderSize = 0;
-        boton.BackColor = Color.FromArgb(52, 152, 219);
-        boton.ForeColor = Color.White;
-        boton.Font = new Font("Segoe UI", 11, FontStyle.Bold);
-        boton.Region = System.Drawing.Region.FromHrgn(CreateRoundRectRgn(0, 0, boton.Width, boton.Height, 15, 15));
+    // Helpers UI
 
-        // Hover
-        boton.MouseEnter += (_, __) => boton.BackColor = Color.FromArgb(41, 128, 185);
-        boton.MouseLeave += (_, __) => boton.BackColor = Color.FromArgb(52, 152, 219);
+    private Control MakeRow(string label, Control input)
+    {
+        var p = new TableLayoutPanel { ColumnCount = 2, Width = 320, AutoSize = true };
+        p.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        p.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        p.Controls.Add(new Label { Text = label, AutoSize = true, Font = new Font("Segoe UI", 10) }, 0, 0);
+        p.Controls.Add(input, 1, 0);
+        return p;
+    }
+
+    private void EstiloBotonAzul(Button b)
+    {
+        b.FlatStyle = FlatStyle.Flat;
+        b.FlatAppearance.BorderSize = 0;
+        b.BackColor = Color.FromArgb(52, 152, 219);
+        b.ForeColor = Color.White;
+        b.Font = new Font("Segoe UI", 11, FontStyle.Bold);
+        b.SizeChanged += (_, __) =>
+        {
+            var h = CreateRoundRectRgn(0, 0, b.Width, b.Height, 15, 15);
+            b.Region = Region.FromHrgn(h);
+        };
+        b.MouseEnter += (_, __) => b.BackColor = Color.FromArgb(41, 128, 185);
+        b.MouseLeave += (_, __) => b.BackColor = Color.FromArgb(52, 152, 219);
     }
 
     [DllImport("Gdi32.dll", EntryPoint = "CreateRoundRectRgn")]
-    private static extern IntPtr CreateRoundRectRgn(
-        int nLeftRect, int nTopRect, int nRightRect, int nBottomRect,
-        int nWidthEllipse, int nHeightEllipse);
+    private static extern IntPtr CreateRoundRectRgn(int nLeftRect, int nTopRect, int nRightRect, int nBottomRect, int nWidthEllipse, int nHeightEllipse);
+
+    private void InitializeComponent() { }
 }

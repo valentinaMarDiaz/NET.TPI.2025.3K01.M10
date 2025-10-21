@@ -1,0 +1,69 @@
+﻿@page "/productos"
+@using DTOs
+@inject HttpClient Http
+
+<PageTitle>Lista de Productos</PageTitle>
+
+<h1>Lista de Productos</h1>
+
+<div class="mb-3">
+    <a href="/productos/agregar" class="btn btn-success">
+        <span class="bi bi-plus-circle-fill" aria-hidden="true"></span> Agregar Producto
+    </a>
+</div>
+
+<p>Esta página muestra los productos obtenidos desde la WebAPI.</p>
+
+@if (productos == null)
+{
+    <p><em>Cargando productos...</em></p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Descripción</th>
+                <th>Categoría</th>
+                <th>Precio Actual</th>
+                <th>Stock</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var prod in productos)
+            {
+                <tr>
+                    <td>@prod.IdProducto</td>
+                    <td>
+                        @* --- INICIO CAMBIO --- *@
+                        <a href="/productos/@prod.IdProducto">@prod.Nombre</a>
+                        @* --- FIN CAMBIO --- *@
+                    </td>
+                    <td>@prod.Descripcion</td>
+                    <td>@prod.CategoriaNombre</td>
+                    <td>@prod.PrecioActual.ToString("C")</td>
+                    <td>@prod.Stock</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<ProductoDTO>? productos;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            productos = await Http.GetFromJsonAsync<List<ProductoDTO>>("productos");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cargar productos: {ex.Message}");
+            // Aquí podrías mostrar un mensaje de error en la página si quisieras
+        }
+    }
+}

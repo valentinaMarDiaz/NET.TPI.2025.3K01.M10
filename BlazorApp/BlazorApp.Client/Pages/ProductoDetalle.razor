@@ -1,0 +1,161 @@
+﻿@page "/productos/{IdProducto:int}"
+@using DTOs
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+@* --- LÍNEA AGREGADA --- *@
+@rendermode InteractiveWebAssembly
+@* --- FIN LÍNEA AGREGADA --- *@
+
+
+<PageTitle>Detalle de Producto</PageTitle>
+
+<h1>Detalle del Producto</h1>
+
+@if (producto == null && cargando)
+{
+    <p><em>Cargando detalle del producto...</em></p>
+}
+else if (producto != null)
+{
+    <div class="card" style="width: 30rem;">
+        <div class="card-body">
+            <h5 class="card-title">@producto.Nombre</h5>
+            <h6 class="card-subtitle mb-2 text-muted">Categoría: @producto.CategoriaNombre</h6>
+            <p class="card-text">@producto.Descripcion</p>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item"><strong>ID:</strong> @producto.IdProducto</li>
+                <li class="list-group-item"><strong>Precio:</strong> @producto.PrecioActual.ToString("C")</li>
+                <li class="list-group-item"><strong>Stock:</strong> @producto.Stock</li>
+            </ul>
+            <button class="btn btn-warning mt-3 me-2" @onclick="IrAEditar">Editar Producto</button>
+            <button class="btn btn-danger mt-3 me-2" @onclick="ConfirmarYEliminarProducto">Eliminar Producto</button>
+            <button class="btn btn-secondary mt-3" @onclick="VolverAProductos">Volver al listado</button>
+        </div>
+    </div>
+}
+else
+{
+    <p class="text-danger">No se pudo cargar el producto o no existe.</p>
+    <button class="btn btn-secondary" @onclick="VolverAProductos">Volver al listado</button>
+}
+
+@code {
+    [Parameter]
+    public int IdProducto { get; set; }
+
+    private ProductoDTO? producto;
+    private bool cargando = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        cargando = true;
+        producto = null; // Reiniciamos por si acaso
+        try
+        {
+            // Hacemos la llamada GET
+            var response = await Http.GetAsync($"productos/{IdProducto}");
+
+            // Imprimimos el código de estado (debería ser 200 OK)
+            Console.WriteLine($"Código de Estado de la API: {response.StatusCode}");
+
+            // Leemos el cuerpo de la respuesta COMO TEXTO
+            string responseBody = await response.Content.ReadAsStringAsync();
+
+            // ¡IMPRIMIMOS EL TEXTO CRUDO RECIBIDO!
+            Console.WriteLine($"Cuerpo de la Respuesta (texto): '{responseBody}'"); // Fíjate si esto está vacío o tiene algo raro
+
+            // Solo si la respuesta fue exitosa Y el cuerpo no está vacío...
+            if (response.IsSuccessStatusCode && !string.IsNullOrWhiteSpace(responseBody))
+            {
+                try
+                {
+                    // ...intentamos convertirlo a ProductoDTO
+                    // Usamos System.Text.Json directamente para más control
+                    producto = System.Text.Json.JsonSerializer.Deserialize<ProductoDTO>(responseBody, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                }
+                catch (System.Text.Json.JsonException jsonEx)
+                {
+                    // Si falla la conversión a JSON, lo registramos
+                    Console.WriteLine($"Error al deserializar JSON: {jsonEx.Message}");
+                    producto = null;
+                }
+            }
+            else if (response.IsSuccessStatusCode)
+            {
+                Console.WriteLine("La API respondió OK pero con cuerpo vacío.");
+                producto = null;
+            }
+            else
+            {
+                // Si la API devolvió un error (ej: 404)
+                Console.WriteLine($"Error de API (código no exitoso): {response.StatusCode}");
+                producto = null;
+            }
+        }
+        catch (HttpRequestException netEx) // Error de red
+        {
+            Console.WriteLine($"Error de red al llamar a la API: {netEx.Message}");
+            producto = null;
+        }
+        catch (Exception ex) // Otro error inesperado
+        {
+            Console.WriteLine($"Error inesperado al cargar detalle: {ex.Message}");
+            producto = null;
+        }
+        finally
+        {
+            cargando = false; // Terminó el intento de carga
+        }
+    }
+
+    private void VolverAProductos()
+    {
+        Navigation.NavigateTo("/productos");
+    }
+
+    private void IrAEditar()
+    {
+        // Navega a la ruta de edición, pasando el Id del producto actual
+        Navigation.NavigateTo($"/productos/editar/{IdProducto}");
+    }
+
+    private async Task ConfirmarYEliminarProducto()
+    {
+        // --- INICIO CAMBIO ---
+        // Usamos JS Interop para mostrar el diálogo de confirmación del NAVEGADOR
+        bool confirmado = await JSRuntime.InvokeAsync<bool>("confirm", $"¿Estás seguro de que deseas eliminar el producto '{producto?.Nombre}'?");
+        // --- FIN CAMBIO ---
+
+        if (confirmado) // Si el usuario presionó "Aceptar" (o "Sí")
+        {
+            try
+            {
+                // Llama al endpoint DELETE /productos/{id} de tu API
+                var response = await Http.DeleteAsync($"productos/{IdProducto}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    // Usamos alert de JS para el mensaje de éxito (más web-friendly)
+                    await JSRuntime.InvokeVoidAsync("alert", "Producto eliminado con éxito.");
+                    Navigation.NavigateTo("/productos"); // Vuelve a la lista después de eliminar
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"Error de API al eliminar: {errorContent}");
+                    await JSRuntime.InvokeVoidAsync("alert", $"Error al eliminar el producto: {errorContent}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error inesperado al eliminar: {ex.Message}");
+                await JSRuntime.InvokeVoidAsync("alert", $"Error inesperado: {ex.Message}");
+            }
+        }
+        // Si el usuario presiona "Cancelar" (o "No"), no hacemos nada.
+    }
+
+
+}

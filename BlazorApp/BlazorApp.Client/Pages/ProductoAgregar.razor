@@ -1,0 +1,130 @@
+﻿@page "/productos/agregar" // Ruta para este formulario
+@using DTOs
+@inject HttpClient Http
+@inject NavigationManager Navigation // Para volver al listado después de guardar
+@rendermode InteractiveWebAssembly // Asegura interactividad
+
+<PageTitle>Agregar Producto</PageTitle>
+
+<h3>Agregar Nuevo Producto</h3>
+
+<EditForm Model="nuevoProducto" OnValidSubmit="HandleValidSubmit" FormName="agregarProductoForm">
+    @* Define el formulario y qué método llamar al enviar *@
+    <DataAnnotationsValidator /> @* Habilita validaciones basadas en atributos (si los tuvieras en el DTO) *@
+
+    <div class="mb-3">
+        <label for="nombre" class="form-label">Nombre:</label>
+        <InputText id="nombre" class="form-control" @bind-Value="nuevoProducto.Nombre" /> @* Campo de texto enlazado a la propiedad Nombre *@
+        <ValidationMessage For="() => nuevoProducto.Nombre" /> @* Muestra errores de validación para Nombre *@
+    </div>
+
+    <div class="mb-3">
+        <label for="descripcion" class="form-label">Descripción:</label>
+        <InputTextArea id="descripcion" class="form-control" @bind-Value="nuevoProducto.Descripcion" /> @* Área de texto *@
+    </div>
+
+    <div class="mb-3">
+        <label for="categoria" class="form-label">Categoría:</label>
+        @if (categorias == null) // Muestra "cargando" mientras busca categorías
+        {
+            <p>Cargando categorías...</p>
+        }
+        else // Muestra el desplegable cuando las categorías están listas
+        {
+            <InputSelect id="categoria" class="form-select" @bind-Value="nuevoProducto.IdCatProducto">
+                @* Desplegable enlazado a IdCatProducto *@
+                <option value="0">-- Seleccione una categoría --</option> @* Opción por defecto *@
+                @foreach (var cat in categorias)
+                {
+                    <option value="@cat.IdCatProducto">@cat.Nombre</option>
+                    // Opciones del desplegable
+                }
+            </InputSelect>
+            <ValidationMessage For="() => nuevoProducto.IdCatProducto" />
+        }
+    </div>
+
+    <div class="mb-3">
+        <label for="precio" class="form-label">Precio Actual:</label>
+        <InputNumber TValue="decimal" id="precio" class="form-control" @bind-Value="nuevoProducto.PrecioActual" /> @* Campo numérico para decimales *@
+        <ValidationMessage For="() => nuevoProducto.PrecioActual" />
+    </div>
+
+    <div class="mb-3">
+        <label for="stock" class="form-label">Stock:</label>
+        <InputNumber TValue="int" id="stock" class="form-control" @bind-Value="nuevoProducto.Stock" /> @* Campo numérico para enteros *@
+        <ValidationMessage For="() => nuevoProducto.Stock" />
+    </div>
+
+    <button type="submit" class="btn btn-primary">Guardar Producto</button>
+    <button type="button" class="btn btn-secondary" @onclick="VolverAProductos">Cancelar</button>
+
+</EditForm>
+
+@code {
+    // Objeto que almacena los datos ingresados en el formulario
+    private ProductoDTO nuevoProducto = new ProductoDTO();
+
+    // Lista para guardar las categorías que se mostrarán en el desplegable
+    private List<CategoriaDTO>? categorias;
+
+    // Se ejecuta al iniciar la página para cargar las categorías
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Llama al endpoint GET /categorias de tu API
+            categorias = await Http.GetFromJsonAsync<List<CategoriaDTO>>("categorias");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cargar categorías: {ex.Message}");
+            // Aquí podrías añadir lógica para mostrar un error al usuario
+        }
+    }
+
+    // Se ejecuta cuando el usuario hace clic en "Guardar" y las validaciones (si las hubiera) pasan
+    private async Task HandleValidSubmit()
+    {
+        // Validación simple para la categoría (asegura que se haya seleccionado una)
+        if (nuevoProducto.IdCatProducto <= 0)
+        {
+            MessageBox(IntPtr.Zero, "Debe seleccionar una categoría.", "Validación", 0);
+            return;
+        }
+
+        try
+        {
+            // Llama al endpoint POST /productos de tu API, enviando el nuevo producto en formato JSON
+            var response = await Http.PostAsJsonAsync("productos", nuevoProducto);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Navigation.NavigateTo("/productos"); // Si se guarda bien, vuelve a la lista
+            }
+            else
+            {
+                // Si la API devuelve un error (ej: 400 Bad Request por validación fallida o nombre duplicado)
+                var errorContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Error de API al guardar: {errorContent}");
+                MessageBox(IntPtr.Zero, $"Error al guardar el producto: {errorContent}", "Error API", 0); // Muestra el error de la API
+            }
+        }
+        catch (Exception ex) // Captura errores generales (ej: de red)
+        {
+            Console.WriteLine($"Error inesperado al guardar producto: {ex.Message}");
+            MessageBox(IntPtr.Zero, $"Error inesperado: {ex.Message}", "Error", 0);
+        }
+    }
+
+    // Método para el botón "Cancelar"
+    private void VolverAProductos()
+    {
+        Navigation.NavigateTo("/productos");
+    }
+
+    // --- Truco para usar MessageBox (no ideal en Blazor puro, pero útil para empezar) ---
+    [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+    public static extern int MessageBox(IntPtr hWnd, String text, String caption, uint type);
+    // --- Fin Truco ---
+}

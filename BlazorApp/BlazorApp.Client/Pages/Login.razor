@@ -1,0 +1,85 @@
+﻿@page "/login"
+@page "/"
+@using DTOs
+@using API.Clients
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.JSInterop
+@using BlazorApp.Client 
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject AuthStateProvider AuthStateProvider 
+@rendermode InteractiveWebAssembly
+
+@* --- 2. Título --- *@
+<PageTitle>Iniciar Sesión</PageTitle>
+<h3>Iniciar Sesión</h3>
+
+@* --- 3. HTML del Formulario --- *@
+<EditForm Model="loginModel" OnValidSubmit="HandleLogin" FormName="loginForm">
+    <DataAnnotationsValidator />
+
+    <div class="mb-3">
+        <label for="email" class="form-label">Email:</label>
+        <InputText id="email" type="email" class="form-control" @bind-Value="loginModel.Email" />
+        <ValidationMessage For="() => loginModel.Email" />
+    </div>
+
+    <div class="mb-3">
+        <label for="password" class="form-label">Contraseña:</label>
+        <InputText id="password" type="password" class="form-control" @bind-Value="loginModel.Password" />
+        <ValidationMessage For="() => loginModel.Password" />
+    </div>
+
+    @* Muestra mensaje de error si login falla *@
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger" role="alert">
+            @errorMessage
+        </div>
+    }
+
+    <button type="submit" class="btn btn-primary">Ingresar</button>
+    <a href="/usuarios/agregar" class="btn btn-link">Registrarse</a> @* Link a registro *@
+
+</EditForm>
+
+
+@* --- 4. INICIO DEL BLOQUE @code --- *@
+@code {
+    // Propiedades del componente
+    private LoginRequestDTO loginModel = new LoginRequestDTO();
+    private string? errorMessage;
+
+    // Método que se ejecuta al enviar el formulario
+    private async Task HandleLogin()
+    {
+        errorMessage = null;
+        try
+        {
+            var user = await AuthApiClient.LoginAsync(loginModel);
+
+            if (user != null)
+            {
+                // --- INICIO CAMBIO ---
+                // Guardamos el usuario en nuestro servicio de estado
+                await AuthStateProvider.Login(user);
+                // --- FIN CAMBIO ---
+
+                // Ya no necesitamos el alert aquí, el layout mostrará la bienvenida
+                // await JSRuntime.InvokeVoidAsync("alert", $"¡Bienvenido/a {user.Nombre}!");
+                Navigation.NavigateTo("/dashboard"); // Redirige a Home/Dashboard
+            }
+            else
+            {
+                errorMessage = "Usuario o contraseña incorrectos.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error en login: {ex.Message}");
+            errorMessage = "Ocurrió un error al intentar iniciar sesión. Intente más tarde.";
+        }
+    }
+
+} 

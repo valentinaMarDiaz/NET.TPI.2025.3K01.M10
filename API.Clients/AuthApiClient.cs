@@ -13,7 +13,7 @@ namespace API.Clients
 
         static AuthApiClient()
         {
-            client.BaseAddress = new Uri("http://localhost:5247/"); // usa el puerto de tu WebAPI
+            client.BaseAddress = new Uri("https://localhost:7206/"); // usa el puerto de tu WebAPI
             client.DefaultRequestHeaders.Accept.Clear();
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         }

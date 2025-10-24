@@ -1,5 +1,11 @@
-﻿@inherits LayoutComponentBase
+﻿@* --- Directivas OBLIGATORIAS al principio, CADA UNA EN SU LÍNEA --- *@
+@inherits LayoutComponentBase
+@using BlazorApp.Client // Asegúrate que sea tu namespace
+@inject AuthStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@implements IDisposable
 
+@* --- Estructura HTML del Layout --- *@
 <div class="page">
     <div class="sidebar">
         <NavMenu />
@@ -8,16 +14,58 @@
     <main>
         <div class="top-row px-4">
             <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+
+            @* --- Lógica para mostrar Usuario o Login --- *@
+            <div class="ms-auto">
+                @if (AuthStateProvider.CurrentUser != null)
+                {
+                    <span class="me-3">
+                        Hola, @AuthStateProvider.CurrentUser.Nombre!
+                    </span>
+                    <button class="btn btn-link" @onclick="Logout">Cerrar Sesión</button>
+                }
+                else
+                {
+                    <a href="/login">Login</a>
+                }
+            </div>
+            @* --- Fin Lógica Usuario/Login --- *@
         </div>
 
         <article class="content px-4">
+            @* --- Placeholder para el contenido de la página --- *@
             @Body
         </article>
     </main>
 </div>
 
+@* Error UI (Opcional) *@
 <div id="blazor-error-ui">
     An unhandled error has occurred.
     <a href="" class="reload">Reload</a>
     <a class="dismiss">🗙</a>
 </div>
+
+@* --- INICIO BLOQUE @code --- *@
+@code {
+    // Se ejecuta al inicializar el layout
+    protected override void OnInitialized()
+    {
+        // Suscribirse al evento de cambio de estado de autenticación
+        AuthStateProvider.OnChange += StateHasChanged;
+    }
+
+    // Se ejecuta al destruir el layout (importante!)
+    public void Dispose()
+    {
+        // Desuscribirse para evitar memory leaks
+        AuthStateProvider.OnChange -= StateHasChanged;
+    }
+
+    // Método para el botón "Cerrar Sesión"
+    private async Task Logout()
+    {
+        await AuthStateProvider.Logout();
+        Navigation.NavigateTo("/login"); // Redirige a login
+    }
+}

@@ -1,0 +1,158 @@
+﻿@* --- 1. Directivas Obligatorias ARRIBA --- *@
+@page "/usuarios/agregar"
+@using DTOs
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.JSInterop
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveWebAssembly
+
+@* --- 2. Título --- *@
+<PageTitle>Agregar Usuario (Registro)</PageTitle>
+<h3>Registrar Nuevo Usuario</h3>
+
+@* --- 3. HTML del Formulario --- *@
+<EditForm Model="nuevoUsuario" OnValidSubmit="HandleValidSubmit" FormName="agregarUsuarioForm">
+    <DataAnnotationsValidator />
+
+    <div class="mb-3">
+        <label class="form-label">Rol:</label>
+        <div>
+            <InputRadioGroup @bind-Value="nuevoUsuario.TipoUsuarioSeleccionado">
+                <div class="form-check form-check-inline">
+                    <InputRadio class="form-check-input" id="rolCliente" Value='"Cliente"' />
+                    <label class="form-check-label" for="rolCliente">Cliente</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <InputRadio class="form-check-input" id="rolVendedor" Value='"Vendedor"' />
+                    <label class="form-check-label" for="rolVendedor">Vendedor</label>
+                </div>
+            </InputRadioGroup>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label for="nombre" class="form-label">Nombre:</label>
+        <InputText id="nombre" class="form-control" @bind-Value="nuevoUsuario.Nombre" />
+        <ValidationMessage For="() => nuevoUsuario.Nombre" />
+    </div>
+    <div class="mb-3">
+        <label for="apellido" class="form-label">Apellido:</label>
+        <InputText id="apellido" class="form-control" @bind-Value="nuevoUsuario.Apellido" />
+        <ValidationMessage For="() => nuevoUsuario.Apellido" />
+    </div>
+    <div class="mb-3">
+        <label for="email" class="form-label">Email:</label>
+        <InputText id="email" type="email" class="form-control" @bind-Value="nuevoUsuario.Email" />
+        <ValidationMessage For="() => nuevoUsuario.Email" />
+    </div>
+    <div class="mb-3">
+        <label for="password" class="form-label">Contraseña:</label>
+        <InputText id="password" type="password" class="form-control" @bind-Value="nuevoUsuario.Password" />
+        <ValidationMessage For="() => nuevoUsuario.Password" />
+    </div>
+
+    @* --- Campos condicionales --- *@
+    @if (nuevoUsuario.TipoUsuarioSeleccionado == "Cliente")
+    {
+        <div class="mb-3">
+            <label for="telefono" class="form-label">Teléfono:</label>
+            <InputText id="telefono" class="form-control" @bind-Value="nuevoUsuario.Telefono" />
+            <ValidationMessage For="() => nuevoUsuario.Telefono" />
+        </div>
+        <div class="mb-3">
+            <label for="direccion" class="form-label">Dirección:</label>
+            <InputTextArea id="direccion" class="form-control" @bind-Value="nuevoUsuario.Direccion" />
+            <ValidationMessage For="() => nuevoUsuario.Direccion" />
+        </div>
+    }
+    else if (nuevoUsuario.TipoUsuarioSeleccionado == "Vendedor")
+    {
+        <div class="mb-3">
+            <label for="cuil" class="form-label">CUIL:</label>
+            <InputText id="cuil" class="form-control" @bind-Value="nuevoUsuario.Cuil" />
+            <ValidationMessage For="() => nuevoUsuario.Cuil" />
+        </div>
+    }
+
+    <button type="submit" class="btn btn-primary">Registrar Usuario</button>
+    <button type="button" class="btn btn-secondary" @onclick="VolverAUsuarios">Cancelar</button>
+
+</EditForm> @* <-- Asegúrate que esta etiqueta de cierre esté presente *@
+
+
+@* --- 4. INICIO DEL BLOQUE @code --- *@
+@code {
+
+    // La clase interna para el modelo del formulario
+    public class RegistroFormModel
+    {
+        public string TipoUsuarioSeleccionado { get; set; } = "Cliente";
+        [Required(ErrorMessage = "Nombre es requerido")] public string Nombre { get; set; } = "";
+        [Required(ErrorMessage = "Apellido es requerido")] public string Apellido { get; set; } = "";
+        [Required(ErrorMessage = "Email es requerido")] [EmailAddress(ErrorMessage ="Email inválido")] public string Email { get; set; } = "";
+        [Required(ErrorMessage = "Contraseña es requerida")] public string Password { get; set; } = "";
+        public string Telefono { get; set; } = "";
+        public string Direccion { get; set; } = "";
+        public string Cuil { get; set; } = "";
+    }
+
+    // Propiedades y métodos del componente Blazor
+    private RegistroFormModel nuevoUsuario = new RegistroFormModel();
+    private string? errorApi;
+
+    private async Task HandleValidSubmit()
+    {
+        errorApi = null;
+        try
+        {
+            HttpResponseMessage response;
+            if (nuevoUsuario.TipoUsuarioSeleccionado == "Cliente")
+            {
+                 if (string.IsNullOrWhiteSpace(nuevoUsuario.Telefono) || string.IsNullOrWhiteSpace(nuevoUsuario.Direccion))
+                 { await JSRuntime.InvokeVoidAsync("alert", "Para cliente, completá Teléfono y Dirección."); return; }
+
+                var dtoCliente = new RegisterClienteDTO {
+                    Nombre = nuevoUsuario.Nombre, Apellido = nuevoUsuario.Apellido, Email = nuevoUsuario.Email,
+                    Password = nuevoUsuario.Password, Telefono = nuevoUsuario.Telefono, Direccion = nuevoUsuario.Direccion
+                 };
+                response = await Http.PostAsJsonAsync("auth/register/cliente", dtoCliente);
+            }
+            else // Vendedor
+            {
+                 if (string.IsNullOrWhiteSpace(nuevoUsuario.Cuil))
+                 { await JSRuntime.InvokeVoidAsync("alert", "Para vendedor, completá CUIL."); return; }
+
+                var dtoVendedor = new RegisterVendedorDTO {
+                    Nombre = nuevoUsuario.Nombre, Apellido = nuevoUsuario.Apellido, Email = nuevoUsuario.Email,
+                    Password = nuevoUsuario.Password, Cuil = nuevoUsuario.Cuil
+                };
+                response = await Http.PostAsJsonAsync("auth/register/vendedor", dtoVendedor);
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "¡Usuario registrado con éxito!");
+                Navigation.NavigateTo("/usuarios");
+            }
+            else
+            {
+                 var errorContent = await response.Content.ReadAsStringAsync();
+                 errorApi = $"Error al registrar: {errorContent}";
+                 await JSRuntime.InvokeVoidAsync("alert", $"Error al registrar: {errorContent}");
+            }
+        }
+        catch (Exception ex)
+        {
+            errorApi = $"Error inesperado: {ex.Message}";
+            await JSRuntime.InvokeVoidAsync("alert", $"Error inesperado: {ex.Message}");
+        }
+    }
+
+    private void VolverAUsuarios()
+    {
+        Navigation.NavigateTo("/login");
+    }
+
+} 

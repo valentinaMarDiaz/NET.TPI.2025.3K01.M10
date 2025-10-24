@@ -1,0 +1,116 @@
+﻿@page "/categorias/editar/{IdCategoria:int}" // Ruta con parámetro ID
+@using DTOs
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveWebAssembly
+
+<PageTitle>Editar Categoría</PageTitle>
+
+<h3>Editar Categoría</h3>
+
+@if (categoriaParaEditar == null && cargando) // Muestra cargando mientras busca
+{
+    <p><em>Cargando datos de la categoría...</em></p>
+}
+else if (categoriaParaEditar != null) // Muestra el formulario si se encontró
+{
+    <EditForm Model="categoriaParaEditar" OnValidSubmit="HandleValidSubmit" FormName="editarCategoriaForm">
+        <DataAnnotationsValidator />
+
+        <div class="mb-3">
+            <label for="nombre" class="form-label">Nombre:</label>
+            <InputText id="nombre" class="form-control" @bind-Value="categoriaParaEditar.Nombre" />
+            <ValidationMessage For="() => categoriaParaEditar.Nombre" />
+        </div>
+
+        <div class="mb-3">
+            <label for="descripcion" class="form-label">Descripción:</label>
+            <InputTextArea id="descripcion" class="form-control" @bind-Value="categoriaParaEditar.Descripcion" />
+            <ValidationMessage For="() => categoriaParaEditar.Descripcion" />
+        </div>
+
+        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+        <button type="button" class="btn btn-secondary" @onclick="VolverACategorias">Cancelar</button>
+
+    </EditForm>
+}
+else // Muestra si no se encontró la categoría a editar
+{
+    <p class="text-danger">No se pudo cargar la categoría para editar o no existe.</p>
+    <button class="btn btn-secondary" @onclick="VolverACategorias">Volver al listado</button>
+}
+
+@code {
+    [Parameter] // Recibe el ID desde la URL
+    public int IdCategoria { get; set; }
+
+    // Objeto para guardar los datos de la categoría a editar
+    private CategoriaDTO? categoriaParaEditar;
+
+    private bool cargando = true; // Controla mensaje inicial
+    private string? errorApi; // Para mostrar errores de la API (opcional)
+
+    // Se ejecuta al cargar la página: busca la categoría a editar
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Llama al endpoint GET /categorias/{id}
+            categoriaParaEditar = await Http.GetFromJsonAsync<CategoriaDTO>($"categorias/{IdCategoria}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cargar categoría para editar: {ex.Message}");
+            categoriaParaEditar = null; // Si falla, no mostramos el form
+            await JSRuntime.InvokeVoidAsync("alert", $"Error al cargar categoría: {ex.Message}");
+        }
+        finally
+        {
+            cargando = false; // Terminó de cargar
+        }
+    }
+
+    // Se ejecuta al enviar el formulario válido
+    private async Task HandleValidSubmit()
+    {
+        errorApi = null; // Limpia errores previos
+        if (categoriaParaEditar == null) return; // Seguridad extra
+
+        // Validación simple (podríamos usar DataAnnotations en CategoriaDTO)
+        if (string.IsNullOrWhiteSpace(categoriaParaEditar.Nombre))
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "El nombre es obligatorio.");
+            return;
+        }
+
+        try
+        {
+            // Llama al endpoint PUT /categorias de tu API
+            var response = await Http.PutAsJsonAsync("categorias", categoriaParaEditar);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Navigation.NavigateTo("/categorias"); // Vuelve al listado si se guardó bien
+            }
+            else
+            {
+                // Muestra errores de la API
+                var errorContent = await response.Content.ReadAsStringAsync();
+                errorApi = $"Error al guardar: {errorContent}";
+                await JSRuntime.InvokeVoidAsync("alert", $"Error al guardar cambios: {errorContent}");
+            }
+        }
+        catch (Exception ex)
+        {
+            errorApi = $"Error inesperado: {ex.Message}";
+            await JSRuntime.InvokeVoidAsync("alert", $"Error inesperado: {ex.Message}");
+        }
+    }
+
+    // Método para el botón "Cancelar" o si falla la carga inicial
+    private void VolverACategorias()
+    {
+        Navigation.NavigateTo("/categorias");
+    }
+}

@@ -1,0 +1,160 @@
+﻿@page "/usuarios/editar/{IdUsuario:int}" // Ruta con parámetro ID
+@using DTOs
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveWebAssembly
+
+<PageTitle>Editar Usuario</PageTitle>
+
+<h3>Editar Usuario</h3>
+
+@if (usuarioParaEditar == null && cargando)
+{
+    <p><em>Cargando datos del usuario...</em></p>
+}
+else if (usuarioParaEditar != null)
+{
+    <EditForm Model="usuarioParaEditar" OnValidSubmit="HandleValidSubmit" FormName="editarUsuarioForm">
+        <DataAnnotationsValidator /> @* Activa validaciones si las pones en UsuarioDTO *@
+
+        <div class="mb-3">
+            <label class="form-label">Tipo de Usuario:</label>
+            <InputText class="form-control" Value="@usuarioParaEditar.TipoUsuario" disabled /> @* El tipo no se puede cambiar *@
+        </div>
+
+        <div class="mb-3">
+            <label for="nombre" class="form-label">Nombre:</label>
+            <InputText id="nombre" class="form-control" @bind-Value="usuarioParaEditar.Nombre" />
+            <ValidationMessage For="() => usuarioParaEditar.Nombre" />
+        </div>
+
+        <div class="mb-3">
+            <label for="apellido" class="form-label">Apellido:</label>
+            <InputText id="apellido" class="form-control" @bind-Value="usuarioParaEditar.Apellido" />
+            <ValidationMessage For="() => usuarioParaEditar.Apellido" />
+        </div>
+
+        <div class="mb-3">
+            <label for="email" class="form-label">Email:</label>
+            <InputText id="email" type="email" class="form-control" @bind-Value="usuarioParaEditar.Email" />
+            <ValidationMessage For="() => usuarioParaEditar.Email" />
+        </div>
+
+        @* --- Campos específicos por Tipo de Usuario --- *@
+        @if (usuarioParaEditar.TipoUsuario == "Cliente")
+        {
+            <div class="mb-3">
+                <label for="telefono" class="form-label">Teléfono:</label>
+                <InputText id="telefono" class="form-control" @bind-Value="usuarioParaEditar.Telefono" />
+                <ValidationMessage For="() => usuarioParaEditar.Telefono" />
+            </div>
+            <div class="mb-3">
+                <label for="direccion" class="form-label">Dirección:</label>
+                <InputTextArea id="direccion" class="form-control" @bind-Value="usuarioParaEditar.Direccion" />
+                <ValidationMessage For="() => usuarioParaEditar.Direccion" />
+            </div>
+        }
+        else if (usuarioParaEditar.TipoUsuario == "Vendedor")
+        {
+            <div class="mb-3">
+                <label for="cuil" class="form-label">CUIL:</label>
+                <InputText id="cuil" class="form-control" @bind-Value="usuarioParaEditar.Cuil" />
+                <ValidationMessage For="() => usuarioParaEditar.Cuil" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Legajo:</label>
+                <InputText class="form-control" Value="@usuarioParaEditar.Legajo?.ToString()" disabled /> @* Legajo no editable *@
+            </div>
+        }
+        @* --- Fin Campos específicos --- *@
+
+
+        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+        <button type="button" class="btn btn-secondary" @onclick="VolverAUsuarios">Cancelar</button>
+
+    </EditForm>
+}
+else
+{
+    <p class="text-danger">No se pudo cargar el usuario para editar o no existe.</p>
+    <button class="btn btn-secondary" @onclick="VolverAUsuarios">Volver al listado</button>
+}
+
+
+@code {
+    [Parameter] // Recibe el ID desde la URL
+    public int IdUsuario { get; set; }
+
+    // Objeto para los datos del usuario a editar
+    private UsuarioDTO? usuarioParaEditar;
+
+    private bool cargando = true; // Controla mensaje inicial
+    private string? errorApi; // Para mostrar errores de la API
+
+    // Carga el usuario a editar al iniciar
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Llama al endpoint GET /usuarios/{id}
+            usuarioParaEditar = await Http.GetFromJsonAsync<UsuarioDTO>($"usuarios/{IdUsuario}");
+            // Aseguramos que los campos opcionales no sean null para evitar problemas con @bind-Value
+            if (usuarioParaEditar != null)
+            {
+                usuarioParaEditar.Telefono ??= "";
+                usuarioParaEditar.Direccion ??= "";
+                usuarioParaEditar.Cuil ??= "";
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cargar usuario para editar: {ex.Message}");
+            usuarioParaEditar = null;
+            await JSRuntime.InvokeVoidAsync("alert", $"Error al cargar usuario: {ex.Message}");
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    // Se ejecuta al enviar el formulario válido
+    private async Task HandleValidSubmit()
+    {
+        errorApi = null;
+        if (usuarioParaEditar == null) return;
+
+        // Aquí podrías agregar validaciones específicas antes de enviar,
+        // ej: verificar formato de email, teléfono solo números, etc.
+        // if (!Validaciones.EsEmailValido(usuarioParaEditar.Email)) { ... }
+
+        try
+        {
+            // Llama al endpoint PUT /usuarios de tu API
+            var response = await Http.PutAsJsonAsync("usuarios", usuarioParaEditar);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Navigation.NavigateTo("/usuarios"); // Vuelve al listado si se guardó bien
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                errorApi = $"Error al guardar: {errorContent}";
+                await JSRuntime.InvokeVoidAsync("alert", $"Error al guardar cambios: {errorContent}");
+            }
+        }
+        catch (Exception ex)
+        {
+            errorApi = $"Error inesperado: {ex.Message}";
+            await JSRuntime.InvokeVoidAsync("alert", $"Error inesperado: {ex.Message}");
+        }
+    }
+
+    // Método para el botón "Cancelar" o si falla la carga
+    private void VolverAUsuarios()
+    {
+        Navigation.NavigateTo("/usuarios");
+    }
+}

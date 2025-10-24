@@ -1,0 +1,72 @@
+﻿@page "/categorias/agregar" // Ruta para este formulario
+@using DTOs
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveWebAssembly
+
+<PageTitle>Agregar Categoría</PageTitle>
+
+<h3>Agregar Nueva Categoría</h3>
+
+<EditForm Model="nuevaCategoria" OnValidSubmit="HandleValidSubmit" FormName="agregarCategoriaForm">
+    <DataAnnotationsValidator />
+
+    <div class="mb-3">
+        <label for="nombre" class="form-label">Nombre:</label>
+        <InputText id="nombre" class="form-control" @bind-Value="nuevaCategoria.Nombre" />
+        <ValidationMessage For="() => nuevaCategoria.Nombre" />
+    </div>
+
+    <div class="mb-3">
+        <label for="descripcion" class="form-label">Descripción:</label>
+        <InputTextArea id="descripcion" class="form-control" @bind-Value="nuevaCategoria.Descripcion" />
+        <ValidationMessage For="() => nuevaCategoria.Descripcion" />
+    </div>
+
+    <button type="submit" class="btn btn-primary">Guardar Categoría</button>
+    <button type="button" class="btn btn-secondary" @onclick="VolverACategorias">Cancelar</button>
+
+</EditForm>
+
+@code {
+    // Objeto para los datos del formulario
+    private CategoriaDTO nuevaCategoria = new CategoriaDTO();
+
+    // Método que se ejecuta al guardar
+    private async Task HandleValidSubmit()
+    {
+        // Validación extra simple (aunque podríamos usar DataAnnotations en CategoriaDTO)
+        if (string.IsNullOrWhiteSpace(nuevaCategoria.Nombre))
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "El nombre es obligatorio.");
+            return;
+        }
+
+        try
+        {
+            // Llama al endpoint POST /categorias
+            var response = await Http.PostAsJsonAsync("categorias", nuevaCategoria);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Navigation.NavigateTo("/categorias"); // Vuelve a la lista
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                await JSRuntime.InvokeVoidAsync("alert", $"Error al guardar: {errorContent}");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error inesperado: {ex.Message}");
+        }
+    }
+
+    // Método para el botón "Cancelar"
+    private void VolverACategorias()
+    {
+        Navigation.NavigateTo("/categorias");
+    }
+}

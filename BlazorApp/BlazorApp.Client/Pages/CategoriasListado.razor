@@ -1,0 +1,117 @@
+﻿@page "/categorias" // Ruta para esta página
+@using DTOs // Para usar CategoriaDTO
+@inject HttpClient Http // Para llamar a la API
+@inject NavigationManager Navigation // Para navegar a otras páginas (Agregar/Editar)
+@inject IJSRuntime JSRuntime // Para usar confirm/alert en Eliminar
+@rendermode InteractiveWebAssembly // Asegura interactividad
+
+<PageTitle>Lista de Categorías</PageTitle>
+
+<h1>Lista de Categorías</h1>
+
+<div class="mb-3">
+    <a href="/categorias/agregar" class="btn btn-success">
+        @* Botón para ir a Agregar *@
+        <span class="bi bi-plus-circle-fill" aria-hidden="true"></span> Agregar Categoría
+    </a>
+</div>
+
+@if (categorias == null) // Muestra "cargando"
+{
+    <p><em>Cargando categorías...</em></p>
+}
+else // Muestra la tabla
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Descripción</th>
+                <th>Acciones</th> @* Columna para botones *@
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var cat in categorias)
+            {
+                <tr>
+                    <td>@cat.IdCatProducto</td>
+                    <td>@cat.Nombre</td>
+                    <td>@cat.Descripcion</td>
+                    <td>
+                        @* Botones de acción en cada fila *@
+                        <button class="btn btn-sm btn-warning me-1" @onclick="() => IrAEditar(cat.IdCatProducto)">
+                            <span class="bi bi-pencil-fill" aria-hidden="true"></span> Editar
+                        </button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => ConfirmarYEliminar(cat)">
+                            <span class="bi bi-trash-fill" aria-hidden="true"></span> Eliminar
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<CategoriaDTO>? categorias; // Variable para la lista
+
+    // Se ejecuta al cargar la página
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarCategorias(); // Llama al método para cargar datos
+    }
+
+    // Método reutilizable para cargar/recargar las categorías
+    private async Task CargarCategorias()
+    {
+        categorias = null; // Forza a mostrar "cargando..." mientras se recarga
+        StateHasChanged(); // Notifica a Blazor que la UI debe actualizarse (mostrar cargando)
+        try
+        {
+            // Llama al endpoint GET /categorias
+            categorias = await Http.GetFromJsonAsync<List<CategoriaDTO>>("categorias");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cargar categorías: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", $"Error al cargar categorías: {ex.Message}");
+        }
+    }
+
+    // Navega a la página de edición
+    private void IrAEditar(int idCategoria)
+    {
+        Navigation.NavigateTo($"/categorias/editar/{idCategoria}");
+    }
+
+    // Lógica para eliminar (similar a Productos)
+    private async Task ConfirmarYEliminar(CategoriaDTO categoria)
+    {
+        bool confirmado = await JSRuntime.InvokeAsync<bool>("confirm", $"¿Estás seguro de eliminar la categoría '{categoria.Nombre}'?");
+
+        if (confirmado)
+        {
+            try
+            {
+                // Llama al endpoint DELETE /categorias/{id}
+                var response = await Http.DeleteAsync($"categorias/{categoria.IdCatProducto}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    await JSRuntime.InvokeVoidAsync("alert", "Categoría eliminada con éxito.");
+                    await CargarCategorias(); // Recarga la lista para quitar la eliminada
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    await JSRuntime.InvokeVoidAsync("alert", $"Error al eliminar: {errorContent}");
+                }
+            }
+            catch (Exception ex)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", $"Error inesperado: {ex.Message}");
+            }
+        }
+    }
+}

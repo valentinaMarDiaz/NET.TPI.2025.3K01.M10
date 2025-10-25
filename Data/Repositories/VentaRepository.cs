@@ -20,10 +20,9 @@ public class VentaRepository
                 .FirstOrDefault(x => x.IdCliente == idCliente && x.Estado == "Abierto")
                 ?? throw new ArgumentException("No hay carrito abierto para el cliente.");
 
-            var items = ctx.CarritoItems
-                .Where(i => i.IdCarrito == carrito.IdCarrito)
-                .Join(ctx.Productos, i => i.IdProducto, p => p.IdProducto, (i, p) => new { i, p })
-                .ToList();
+            var items = (from i in ctx.CarritoItems.Where(i => i.IdCarrito == carrito.IdCarrito)
+                         join p in ctx.Productos on i.IdProducto equals p.IdProducto
+                         select new { i, p }).ToList();
 
             if (items.Count == 0)
                 throw new ArgumentException("El carrito está vacío.");
@@ -37,9 +36,49 @@ public class VentaRepository
             ctx.Ventas.Add(venta);
             ctx.SaveChanges(); // obtener IdVenta
 
+            var ahora = DateTime.UtcNow;
+
             foreach (var x in items)
             {
-                ctx.VentaDetalles.Add(new VentaDetalle(venta.IdVenta, x.p.IdProducto, x.i.Cantidad, x.p.PrecioActual));
+                // Precio y descuento vigente al momento de vender
+                var precio = x.p.PrecioActual;
+
+                int? idDesc = null;
+                string? codigoDesc = null;
+                decimal? porcentajeDesc = null;
+
+                if (x.i.IdDescuento.HasValue)
+                {
+                    var desc = ctx.Descuentos.FirstOrDefault(d => d.IdDescuento == x.i.IdDescuento.Value);
+                    if (desc != null && desc.EstaVigenteUtc(ahora))
+                    {
+                        idDesc = desc.IdDescuento;
+                        codigoDesc = desc.Codigo;
+                        porcentajeDesc = desc.Porcentaje;
+                    }
+                }
+
+                var subtotal = precio * x.i.Cantidad;
+                var subtotalConDesc = porcentajeDesc.HasValue
+                    ? decimal.Round(subtotal * (100m - porcentajeDesc.Value) / 100m, 2, MidpointRounding.AwayFromZero)
+                    : subtotal;
+
+                // SNAPSHOT
+                var detalle = new VentaDetalle(
+                    idVenta: venta.IdVenta,
+                    idProducto: x.p.IdProducto,
+                    productoNombre: x.p.Nombre,
+                    cantidad: x.i.Cantidad,
+                    precioUnitario: precio,
+                    idDescuento: idDesc,
+                    codigoDescuento: codigoDesc,
+                    porcentajeDescuento: porcentajeDesc,
+                    subtotalConDescuento: subtotalConDesc
+                );
+
+                ctx.VentaDetalles.Add(detalle);
+
+                // Restar stock
                 x.p.SetStock(x.p.Stock - x.i.Cantidad);
             }
 
@@ -50,6 +89,7 @@ public class VentaRepository
             return venta;
         });
     }
+
     public (Venta venta, List<(VentaDetalle d, Producto p)> detalles, Cliente? cliente) GetVenta(int idVenta)
     {
         using var ctx = Create();
@@ -75,20 +115,22 @@ public class VentaRepository
         if (desdeUtc.HasValue) q = q.Where(v => v.FechaHoraVentaUtc >= desdeUtc.Value);
         if (hastaUtc.HasValue) q = q.Where(v => v.FechaHoraVentaUtc <= hastaUtc.Value);
 
-        var result = q
-            .OrderByDescending(v => v.FechaHoraVentaUtc)
-            .Select(v => new
-            {
-                venta = v,
-                total = ctx.VentaDetalles.Where(d => d.IdVenta == v.IdVenta)
-                                         .Select(d => (decimal?)d.PrecioUnitario * d.Cantidad)
-                                         .Sum() ?? 0m
-            })
-            .ToList();
+          var result = q
+         .OrderByDescending(v => v.FechaHoraVentaUtc)
+         .Select(v => new
+         {
+             venta = v,
+             total = ctx.VentaDetalles.Where(d => d.IdVenta == v.IdVenta)
+                                      .Select(d => (decimal?)d.SubtotalConDescuento)
+                                      .Sum() ?? 0m
+         })
+         .ToList();
+
 
         var clientes = ctx.Set<Cliente>().ToDictionary(c => c.Id, c => c);
         return result.Select(x => (x.venta, clientes.GetValueOrDefault(x.venta.IdCliente), x.total));
     }
+
 
     public void DeleteVenta(int idVenta)
     {

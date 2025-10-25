@@ -8,9 +8,14 @@ public class VentaDTO
     public string? ClienteTelefono { get; set; }
     public string? ClienteDireccion { get; set; }
     public DateTime FechaHoraVentaUtc { get; set; }
+
     public List<VentaDetalleDTO> Detalles { get; set; } = new();
-    public decimal Total => Detalles.Sum(d => d.Subtotal);
+       
+    public decimal TotalListado { get; set; }
+
+    public decimal Total => Detalles.Sum(d => d.SubtotalConDescuento);
 }
+
 
 public class VentaDetalleDTO
 {
@@ -18,8 +23,16 @@ public class VentaDetalleDTO
     public string ProductoNombre { get; set; } = "";
     public int Cantidad { get; set; }
     public decimal PrecioUnitario { get; set; }
-    public decimal Subtotal => decimal.Round(PrecioUnitario * Cantidad, 2);
+
+    public int? IdDescuento { get; set; }
+    public string? CodigoDescuento { get; set; }
+    public decimal? PorcentajeDescuento { get; set; }
+
+    public decimal SubtotalConDescuento { get; set; }
+
+     public decimal Subtotal => SubtotalConDescuento;
 }
+
 
 public class VentaFiltroDTO
 {

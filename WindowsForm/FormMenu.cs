@@ -40,12 +40,14 @@ namespace WindowsForm
         private readonly Button btnUsuarios = new() { Text = "Lista de usuarios", Height = 40, Width = 240 };
         private readonly Button btnCategorias = new() { Text = "Lista de categorías", Height = 40, Width = 240 };
         private readonly Button btnProductos = new() { Text = "Productos", Height = 40, Width = 240 };
+        private readonly Button btnDescuentos = new() { Text = "Descuentos", Height = 40, Width = 240 }; // <-- NUEVO
         private readonly Button btnHistorial = new() { Text = "Historial de precios", Height = 40, Width = 240 };
         private readonly Button btnVentas = new() { Text = "Ventas", Height = 40, Width = 240 };
 
         // Cliente
         private readonly Button btnProductosCliente = new() { Text = "Productos", Height = 40, Width = 240 };
         private readonly Button btnCarrito = new() { Text = "Carrito", Height = 40, Width = 240 };
+        private readonly Button btnDescuentosCliente = new() { Text = "Descuentos", Height = 40, Width = 240 }; // <-- NUEVO
         private readonly Label lblBadge = new() { Text = "0", AutoSize = true, BackColor = Color.Red, ForeColor = Color.White, Padding = new Padding(6, 2, 6, 2) };
 
         public FormMenu(LoginResponseDTO user)
@@ -69,14 +71,17 @@ namespace WindowsForm
                     ctrl.Margin = new Padding((panelBotones.ClientSize.Width - ctrl.Width) / 2, 8, 0, 8);
             };
 
+            // Estilo
             ConfigurarEstiloBoton(btnUsuarios);
             ConfigurarEstiloBoton(btnCategorias);
             ConfigurarEstiloBoton(btnProductos);
+            ConfigurarEstiloBoton(btnDescuentos);       // <-- NUEVO
             ConfigurarEstiloBoton(btnHistorial);
             ConfigurarEstiloBoton(btnVentas);
 
             ConfigurarEstiloBoton(btnProductosCliente);
             ConfigurarEstiloBoton(btnCarrito);
+            ConfigurarEstiloBoton(btnDescuentosCliente); // <-- NUEVO
             ConfigurarEstiloBoton(btnCerrarSesion);
 
             Controls.Add(panelBotones);
@@ -84,6 +89,7 @@ namespace WindowsForm
 
             if (_user.TipoUsuario == "Cliente")
             {
+                // badge del carrito
                 btnCarrito.Controls.Add(lblBadge);
                 btnCarrito.SizeChanged += (_, __) =>
                 {
@@ -94,6 +100,7 @@ namespace WindowsForm
                 {
                     btnProductosCliente,
                     btnCarrito,
+                    btnDescuentosCliente, // <-- NUEVO en menú cliente
                     btnCerrarSesion
                 });
 
@@ -109,6 +116,12 @@ namespace WindowsForm
                     f.ShowDialog(this);
                 };
 
+                btnDescuentosCliente.Click += (_, __) => // <-- abre vigentes
+                {
+                    using var f = new FormDescuentosVigentes();
+                    f.ShowDialog(this);
+                };
+
                 Shown += async (_, __) => await RefreshBadgeAsync();
             }
             else if (_user.TipoUsuario == "Vendedor")
@@ -118,6 +131,7 @@ namespace WindowsForm
                     btnUsuarios,
                     btnCategorias,
                     btnProductos,
+                    btnDescuentos,  // <-- NUEVO en menú vendedor
                     btnHistorial,
                     btnVentas,
                     btnCerrarSesion
@@ -126,6 +140,7 @@ namespace WindowsForm
                 btnUsuarios.Click += (_, __) => { using var f = new FormUsuarioLista(); f.ShowDialog(this); };
                 btnCategorias.Click += (_, __) => { using var f = new FormCategoriaLista(); f.ShowDialog(this); };
                 btnProductos.Click += (_, __) => { using var f = new FormProductosLista(); f.ShowDialog(this); };
+                btnDescuentos.Click += (_, __) => { using var f = new FormDescuentoLista(); f.ShowDialog(this); }; // <-- abre CRUD descuentos
                 btnHistorial.Click += (_, __) => { using var f = new FormHistorialPrecios(); f.ShowDialog(this); };
                 btnVentas.Click += (_, __) => { using var f = new FormVentasLista(); f.ShowDialog(this); };
             }
@@ -148,7 +163,7 @@ namespace WindowsForm
         private void LogoutAndClose()
         {
             LogoutRequested = true;
-            Close();                // NO Application.Exit()
+            Close(); // NO Application.Exit()
         }
 
         private void ConfigurarEstiloBoton(Button boton)
@@ -167,19 +182,18 @@ namespace WindowsForm
             boton.MouseLeave += (_, __) => boton.BackColor = Color.FromArgb(52, 152, 219);
         }
 
+        // En FormMenu.cs
         private async Task RefreshBadgeAsync()
         {
             try
             {
-                var c = await CarritoApiClient.GetAsync(_user.Id);
+                var c = await API.Clients.CarritoApiClient.GetAsync(_user.Id);
                 lblBadge.Text = c.CantidadTotal.ToString();
                 lblBadge.Location = new Point(btnCarrito.Width - lblBadge.Width - 12, 6);
             }
-            catch
-            {
-                lblBadge.Text = "0";
-            }
+            catch { lblBadge.Text = "0"; }
         }
+
 
         [DllImport("Gdi32.dll", EntryPoint = "CreateRoundRectRgn")]
         private static extern IntPtr CreateRoundRectRgn(

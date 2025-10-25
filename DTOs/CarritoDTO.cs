@@ -1,40 +1,32 @@
-﻿namespace DTOs;
-
-public class CarritoDTO
+﻿// DTOs/CarritoDTO.cs
+namespace DTOs
 {
-    public int IdCarrito { get; set; }
-    public int IdCliente { get; set; }
-    public string Estado { get; set; } = "Abierto";
-    public DateTime FechaCreacionUtc { get; set; }
-    public List<CarritoItemDTO> Items { get; set; } = new();
-    public decimal Total => Items.Sum(i => i.Subtotal);
-    public int CantidadTotal => Items.Sum(i => i.Cantidad);
-}
+    public class CarritoDTO
+    {
+        public int IdCarrito { get; set; }
+        public int IdCliente { get; set; }
+        public string Estado { get; set; } = "Abierto";
 
-public class CarritoItemDTO
-{
-    public int IdCarritoItem { get; set; }
-    public int IdProducto { get; set; }
-    public string ProductoNombre { get; set; } = "";
-    public decimal PrecioActual { get; set; }
-    public int Cantidad { get; set; }
-    public decimal Subtotal => decimal.Round(PrecioActual * Cantidad, 2);
-}
+        // Para el badge del carrito
+        public int CantidadTotal { get; set; }
 
-public class AgregarCarritoDTO
-{
-    public int IdCliente { get; set; }
-    public int IdProducto { get; set; }
-    public int Cantidad { get; set; }
-}
+        public decimal Total { get; set; }
+        public List<CarritoItemDTO> Items { get; set; } = new();
+    }
 
-public class EliminarItemCarritoDTO
-{
-    public int IdCliente { get; set; }
-    public int IdProducto { get; set; }
-}
+    public class CarritoItemDTO
+    {
+        public int IdProducto { get; set; }
+        public string ProductoNombre { get; set; } = string.Empty;
 
-public class ConfirmarCarritoDTO
-{
-    public int IdCliente { get; set; }
+        public int Cantidad { get; set; }
+        public decimal PrecioUnitario { get; set; }
+
+        public int? IdDescuento { get; set; }
+        public string? CodigoDescuento { get; set; }
+        public decimal? Porcentaje { get; set; }
+
+        // set con setter para que el servicio lo asigne sin errores
+        public decimal Subtotal { get; set; }
+    }
 }

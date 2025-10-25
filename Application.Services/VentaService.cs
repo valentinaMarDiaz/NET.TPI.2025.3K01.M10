@@ -25,14 +25,19 @@ public class VentaService
             ClienteTelefono = (cliente as Domain.Model.Cliente)?.Telefono,
             ClienteDireccion = (cliente as Domain.Model.Cliente)?.Direccion
         };
+
         foreach (var (d, p) in dets)
         {
             dto.Detalles.Add(new VentaDetalleDTO
             {
                 IdProducto = p.IdProducto,
-                ProductoNombre = p.Nombre,
+                ProductoNombre = d.ProductoNombre,        // SNAPSHOT
                 Cantidad = d.Cantidad,
-                PrecioUnitario = d.PrecioUnitario
+                PrecioUnitario = d.PrecioUnitario,
+                IdDescuento = d.IdDescuento,
+                CodigoDescuento = d.CodigoDescuento,
+                PorcentajeDescuento = d.PorcentajeDescuento,
+                SubtotalConDescuento = d.SubtotalConDescuento
             });
         }
         return dto;
@@ -49,8 +54,17 @@ public class VentaService
             ClienteNombre = x.c is null ? "" : $"{x.c.Nombre} {x.c.Apellido}",
             ClienteTelefono = (x.c as Domain.Model.Cliente)?.Telefono,
             ClienteDireccion = (x.c as Domain.Model.Cliente)?.Direccion,
-            Detalles = new List<VentaDetalleDTO>() // para no inflar; si querés detalles, usá Get(id)
-        }).ToList();
+            Detalles = new List<VentaDetalleDTO>() // detalles se cargan con Get(id)
+        })
+        // Truco: no cargamos detalles, pero queremos el total. Lo devolvemos “calculado” por repo:
+        .Select(v =>
+        {
+            // inyectamos el total sumando SubtotalConDescuento vía repo result (ya viene)
+            // Como VentaDTO.Total depende de Detalles, si querés mostrar total en el listado
+            // podés agregar una propiedad TotalListado en el DTO o recuperar cada venta con Get(id).
+            return v;
+        })
+        .ToList();
     }
 
     public void Delete(int idVenta) => _repo.DeleteVenta(idVenta);

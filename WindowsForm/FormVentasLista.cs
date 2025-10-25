@@ -7,7 +7,7 @@ namespace WindowsForm;
 public partial class FormVentasLista : Form
 {
     BindingSource bs = new();
-    DataGridView grid = new() { Dock = DockStyle.Fill, ReadOnly = true, AutoGenerateColumns = true };
+    DataGridView grid = new() { Dock = DockStyle.Fill, ReadOnly = true, AutoGenerateColumns = false };
 
     FlowLayoutPanel top = new() { Dock = DockStyle.Top, Height = 64 };
     TextBox txtIdCliente = new() { PlaceholderText = "Id Cliente (opcional)", Width = 140 };
@@ -30,29 +30,44 @@ public partial class FormVentasLista : Form
         Controls.Add(grid); Controls.Add(top);
         grid.DataSource = bs;
 
+        // === columnas explícitas para evitar nombres errados ===
+        grid.Columns.Clear();
+        grid.Columns.Add(new DataGridViewTextBoxColumn
+        {
+            HeaderText = "IdVenta",
+            DataPropertyName = "IdVenta",
+            Width = 80
+        });
+        grid.Columns.Add(new DataGridViewTextBoxColumn
+        {
+            HeaderText = "IdCliente",
+            DataPropertyName = "IdCliente",
+            Width = 80
+        });
+        grid.Columns.Add(new DataGridViewTextBoxColumn
+        {
+            HeaderText = "Cliente",
+            DataPropertyName = "ClienteNombre",
+            AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill
+        });
+        grid.Columns.Add(new DataGridViewTextBoxColumn
+        {
+            HeaderText = "Fecha",
+            DataPropertyName = "FechaHoraVentaUtc",
+            DefaultCellStyle = { Format = "g" }, // se mostrará UTC; si querés local, transformalo en el DTO o al bindear
+            Width = 140
+        });
+        grid.Columns.Add(new DataGridViewTextBoxColumn
+        {
+            HeaderText = "Total",
+            DataPropertyName = "TotalListado",   // <<-- clave: usa el total precalculado para la LISTA
+            DefaultCellStyle = { Format = "N2" },
+            Width = 110
+        });
+
         btnBuscar.Click += async (_, __) => await BuscarAsync();
-        btnVerDetalle.Click += async (_, __) =>
-        {
-            if (grid.CurrentRow?.DataBoundItem is VentaDTO v)
-            {
-                var det = await VentaApiClient.GetAsync(v.IdVenta);
-                MessageBox.Show(det is null ? "Sin datos" :
-                    $"Venta #{det.IdVenta}\nCliente: {det.ClienteNombre}\nFecha: {det.FechaHoraVentaUtc.ToLocalTime():g}\n" +
-                    string.Join(Environment.NewLine, det.Detalles.Select(d => $"- {d.ProductoNombre}: {d.Cantidad} x {d.PrecioUnitario:N2} = {d.Subtotal:N2}")) +
-                    $"\nTOTAL: {det.Total:N2}");
-            }
-        };
-        btnEliminar.Click += async (_, __) =>
-        {
-            if (grid.CurrentRow?.DataBoundItem is VentaDTO v)
-            {
-                if (MessageBox.Show("¿Eliminar la venta y restaurar stock?", "Confirmar", MessageBoxButtons.YesNo) == DialogResult.Yes)
-                {
-                    await VentaApiClient.DeleteAsync(v.IdVenta);
-                    await BuscarAsync();
-                }
-            }
-        };
+        btnVerDetalle.Click += async (_, __) => await VerDetalleAsync();
+        btnEliminar.Click += async (_, __) => await EliminarAsync();
         btnSalir.Click += (_, __) => Close();
 
         Shown += async (_, __) => await BuscarAsync();
@@ -64,7 +79,53 @@ public partial class FormVentasLista : Form
         DateTime? d = chkDesde.Checked ? DateTime.SpecifyKind(dtDesde.Value, DateTimeKind.Local).ToUniversalTime() : null;
         DateTime? h = chkHasta.Checked ? DateTime.SpecifyKind(dtHasta.Value, DateTimeKind.Local).ToUniversalTime() : null;
 
-        var lista = await VentaApiClient.ListAsync(idCliente, d, h);
-        bs.DataSource = lista.ToList();
+        var lista = (await VentaApiClient.ListAsync(idCliente, d, h)).ToList();
+        // Si tu API devuelve Fecha en UTC y querés mostrar LOCAL en la grilla:
+        foreach (var v in lista) v.FechaHoraVentaUtc = v.FechaHoraVentaUtc.ToLocalTime();
+
+        bs.DataSource = lista;
+    }
+
+    private async Task VerDetalleAsync()
+    {
+        if (grid.CurrentRow?.DataBoundItem is not VentaDTO v)
+            return;
+
+        var det = await VentaApiClient.GetAsync(v.IdVenta);
+        if (det is null)
+        {
+            MessageBox.Show("Sin datos", "Detalle", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        // Armo un texto claro con descuento (si tuvo)
+        var lineas = det.Detalles.Select(d =>
+        {
+            var baseLinea = $"- {d.ProductoNombre}: {d.Cantidad} x {d.PrecioUnitario:N2}";
+            if (d.PorcentajeDescuento.HasValue && !string.IsNullOrWhiteSpace(d.CodigoDescuento))
+                baseLinea += $"  |  Cód: {d.CodigoDescuento}  %: {d.PorcentajeDescuento:N2}";
+            baseLinea += $"  =>  {d.SubtotalConDescuento:N2}";
+            return baseLinea;
+        });
+
+        var cuerpo =
+            $"Venta #{det.IdVenta}\n" +
+            $"Cliente: {det.ClienteNombre}\n" +
+            $"Fecha:   {det.FechaHoraVentaUtc.ToLocalTime():g}\n\n" +
+            string.Join(Environment.NewLine, lineas) +
+            $"\n\nTOTAL: {det.Total:N2}";
+
+        MessageBox.Show(cuerpo, "Detalle de venta", MessageBoxButtons.OK, MessageBoxIcon.Information);
+    }
+
+    private async Task EliminarAsync()
+    {
+        if (grid.CurrentRow?.DataBoundItem is not VentaDTO v) return;
+
+        if (MessageBox.Show("¿Eliminar la venta y restaurar stock?", "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+        {
+            await VentaApiClient.DeleteAsync(v.IdVenta);
+            await BuscarAsync();
+        }
     }
 }

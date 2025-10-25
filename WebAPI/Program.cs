@@ -33,7 +33,7 @@ try
     using var ctx = new TPIContext(); // Asegúrate que TPIContext esté en el namespace Data
     // Descomenta la línea que corresponda a tu enfoque:
     // ctx.Database.Migrate(); // Si usas Migraciones
-    ctx.Database.EnsureCreated(); // Si usas EnsureCreated
+    ctx.Database.Migrate();
 }
 catch (Exception ex)
 {
@@ -152,30 +152,47 @@ app.MapGet("/productos/{id:int}/historial", (int id) =>
 );
 
 
-// -------- CARRITO --------
+// --- CARRITO ---
 app.MapGet("/carrito/{idCliente:int}", (int idCliente) =>
 {
     var s = new CarritoService();
-    return Results.Ok(s.GetAbierto(idCliente));
+    return Results.Ok(s.Get(idCliente));
 });
 
-app.MapPost("/carrito/agregar", (AgregarCarritoDTO dto) =>
+app.MapDelete("/carrito/{idCliente:int}/producto/{idProducto:int}", (int idCliente, int idProducto) =>
 {
-    try { return Results.Ok(new CarritoService().Add(dto)); }
-    catch (ArgumentException ex) { return Results.BadRequest(new { error = ex.Message }); }
+    new CarritoService().Remove(idCliente, idProducto);
+    return Results.NoContent();
 });
 
-app.MapDelete("/carrito/item", (int idCliente, int idProducto) =>
+app.MapPost("/carrito/{idCliente:int}/aplicar-codigo", (int idCliente, string codigo) =>
 {
-    try { return Results.Ok(new CarritoService().Remove(new EliminarItemCarritoDTO { IdCliente = idCliente, IdProducto = idProducto })); }
-    catch (ArgumentException ex) { return Results.BadRequest(new { error = ex.Message }); }
+    new CarritoService().AplicarCodigo(idCliente, codigo);
+    return Results.NoContent();
 });
 
-app.MapPost("/carrito/confirmar", (ConfirmarCarritoDTO dto) =>
+app.MapPost("/carrito/{idCliente:int}/confirmar", (int idCliente) =>
 {
-    try { return Results.Ok(new VentaService().Confirmar(dto.IdCliente)); }
-    catch (ArgumentException ex) { return Results.BadRequest(new { error = ex.Message }); }
+    var s = new VentaService();
+    var venta = s.Confirmar(idCliente); // crea Venta + Detalles y descuenta stock
+    return Results.Ok(new { IdVenta = venta.IdVenta, Total = venta.Total });
 });
+
+app.MapPost("/carrito/{idCliente:int}/item", (int idCliente, int producto, int cantidad) =>
+{
+    try
+    {
+        var s = new Application.Services.CarritoService();
+        s.AddOrIncreaseItem(idCliente, producto, cantidad);
+        return Results.NoContent();
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+
 
 
 // -------- VENTAS --------
@@ -196,6 +213,49 @@ app.MapDelete("/ventas/{id:int}", (int id) =>
     try { new VentaService().Delete(id); return Results.NoContent(); }
     catch (ArgumentException ex) { return Results.BadRequest(new { error = ex.Message }); }
 });
+// ----- DESCUENTOS -----
+app.MapGet("/descuentos", () =>
+{
+    return Results.Ok(new DescuentoService().GetAll());
+});
+
+app.MapPost("/descuentos", (DescuentoDTO dto) =>
+{
+    try { return Results.Created("/descuentos", new DescuentoService().Add(dto)); }
+    catch (ArgumentException ex) { return Results.BadRequest(new { error = ex.Message }); }
+});
+
+app.MapPut("/descuentos", (DescuentoDTO dto) =>
+{
+    try { return new DescuentoService().Update(dto) ? Results.NoContent() : Results.NotFound(); }
+    catch (ArgumentException ex) { return Results.BadRequest(new { error = ex.Message }); }
+});
+
+app.MapDelete("/descuentos/{id:int}", (int id) =>
+{
+    return new DescuentoService().Delete(id) ? Results.NoContent() : Results.NotFound();
+});
+// ----- DESCUENTOS (CLIENTE) -----
+app.MapGet("/descuentos/vigentes", (string? texto) =>
+{
+    var svc = new Application.Services.DescuentoService();
+    // filtra por texto (producto o código) y trae solo vigentes, ordenados por caducidad
+    return Results.Ok(svc.GetVigentes(texto, DateTime.UtcNow));
+})
+.WithName("GetDescuentosVigentes")
+.Produces<List<DTOs.DescuentoDTO>>(StatusCodes.Status200OK)
+.WithOpenApi();
+
+app.MapGet("/descuentos/validar", (string codigo) =>
+{
+    var svc = new Application.Services.DescuentoService();
+    var dto = svc.GetByCodigoVigente(codigo);
+    return dto is null ? Results.NotFound() : Results.Ok(dto);
+})
+.WithName("ValidarDescuento")
+.Produces<DTOs.DescuentoDTO>(StatusCodes.Status200OK)
+.Produces(StatusCodes.Status404NotFound)
+.WithOpenApi();
 
 // --- FIN ENDPOINTS MINIMAL API ---
 

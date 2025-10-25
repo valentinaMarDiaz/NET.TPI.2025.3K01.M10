@@ -4,6 +4,7 @@ using Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Data.Migrations
 {
     [DbContext(typeof(TPIContext))]
-    partial class TPIContextModelSnapshot : ModelSnapshot
+    [Migration("20251025004900_AddDescuentos")]
+    partial class AddDescuentos
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -35,15 +38,19 @@ namespace Data.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<DateTime?>("FechaConfirmacionUtc")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("FechaCreacionUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
+                        .HasColumnType("datetime2");
 
                     b.Property<int>("IdCliente")
                         .HasColumnType("int");
 
                     b.HasKey("IdCarrito");
+
+                    b.HasIndex("IdCliente", "Estado")
+                        .HasDatabaseName("IX_Carrito_Cliente_Estado");
 
                     b.ToTable("Carritos", (string)null);
                 });
@@ -60,15 +67,13 @@ namespace Data.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("IdCarrito")
-                        .HasColumnType("int")
-                        .HasColumnName("IdCarrito");
+                        .HasColumnType("int");
 
                     b.Property<int?>("IdDescuento")
                         .HasColumnType("int");
 
                     b.Property<int>("IdProducto")
-                        .HasColumnType("int")
-                        .HasColumnName("IdProducto");
+                        .HasColumnType("int");
 
                     b.HasKey("IdCarritoItem");
 
@@ -114,12 +119,13 @@ namespace Data.Migrations
 
                     b.Property<string>("Codigo")
                         .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
+                        .HasMaxLength(24)
+                        .HasColumnType("nvarchar(24)");
 
                     b.Property<string>("Descripcion")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<DateTime>("FechaCaducidadUtc")
                         .HasColumnType("datetime2");
@@ -131,7 +137,7 @@ namespace Data.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("Porcentaje")
-                        .HasColumnType("decimal(18,2)");
+                        .HasColumnType("decimal(5,2)");
 
                     b.HasKey("IdDescuento");
 
@@ -140,7 +146,7 @@ namespace Data.Migrations
 
                     b.HasIndex("IdProducto");
 
-                    b.ToTable("Descuentos");
+                    b.ToTable("Descuentos", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Model.PrecioProducto", b =>
@@ -284,31 +290,13 @@ namespace Data.Migrations
                     b.Property<int>("Cantidad")
                         .HasColumnType("int");
 
-                    b.Property<string>("CodigoDescuento")
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<int?>("IdDescuento")
-                        .HasColumnType("int");
-
                     b.Property<int>("IdProducto")
                         .HasColumnType("int");
 
                     b.Property<int>("IdVenta")
                         .HasColumnType("int");
 
-                    b.Property<decimal?>("PorcentajeDescuento")
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<decimal>("PrecioUnitario")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("ProductoNombre")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<decimal>("SubtotalConDescuento")
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("IdVentaDetalle");
@@ -376,8 +364,8 @@ namespace Data.Migrations
 
             modelBuilder.Entity("Domain.Model.CarritoItem", b =>
                 {
-                    b.HasOne("Domain.Model.Carrito", "Carrito")
-                        .WithMany("Items")
+                    b.HasOne("Domain.Model.Carrito", null)
+                        .WithMany()
                         .HasForeignKey("IdCarrito")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -387,8 +375,6 @@ namespace Data.Migrations
                         .HasForeignKey("IdProducto")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.Navigation("Carrito");
                 });
 
             modelBuilder.Entity("Domain.Model.Descuento", b =>
@@ -435,11 +421,6 @@ namespace Data.Migrations
                         .HasForeignKey("IdVenta")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("Domain.Model.Carrito", b =>
-                {
-                    b.Navigation("Items");
                 });
 #pragma warning restore 612, 618
         }

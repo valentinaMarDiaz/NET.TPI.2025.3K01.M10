@@ -1,6 +1,7 @@
 ﻿using Domain.Model;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using System.Reflection.Emit;
 
 namespace Data;
 
@@ -17,6 +18,8 @@ public class TPIContext : DbContext
     public DbSet<CarritoItem> CarritoItems => Set<CarritoItem>();
     public DbSet<Venta> Ventas => Set<Venta>();
     public DbSet<VentaDetalle> VentaDetalles => Set<VentaDetalle>();
+    public DbSet<Domain.Model.Descuento> Descuentos { get; set; } = null!;
+
 
     public TPIContext() { }
     public TPIContext(DbContextOptions<TPIContext> options) : base(options) { }
@@ -34,11 +37,12 @@ public class TPIContext : DbContext
             b.UseSqlServer(cs, o => o.EnableRetryOnFailure());
         }
     }
-
-    protected override void OnModelCreating(ModelBuilder mb)
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        base.OnModelCreating(modelBuilder);
+
         // ----- CategoriaProducto -----
-        mb.Entity<CategoriaProducto>(e =>
+        modelBuilder.Entity<CategoriaProducto>(e =>
         {
             e.ToTable("Categorias");
             e.HasKey(x => x.IdCatProducto);
@@ -48,8 +52,8 @@ public class TPIContext : DbContext
         });
 
         // ----- Usuarios TPH -----
-        
-        mb.Entity<Usuario>(e =>
+
+        modelBuilder.Entity<Usuario>(e =>
         {
             e.ToTable("Usuarios");
             e.HasDiscriminator<string>("TipoUsuario")
@@ -68,12 +72,12 @@ public class TPIContext : DbContext
             });
         });
 
-        mb.Entity<Cliente>(e =>
+        modelBuilder.Entity<Cliente>(e =>
         {
             e.Property(x => x.Telefono).HasMaxLength(30);
             e.Property(x => x.Direccion).HasMaxLength(200);
         });
-        mb.Entity<Vendedor>(e =>
+        modelBuilder.Entity<Vendedor>(e =>
         {
             e.Property(x => x.Cuil).HasMaxLength(20);
             e.Property(x => x.Legajo).IsRequired();
@@ -81,7 +85,7 @@ public class TPIContext : DbContext
             e.HasIndex(x => x.Legajo).IsUnique();
         });
         // -------- Productos --------
-        mb.Entity<Producto>(e =>
+        modelBuilder.Entity<Producto>(e =>
         {
             e.ToTable("Productos");
             e.HasKey(x => x.IdProducto);
@@ -98,7 +102,7 @@ public class TPIContext : DbContext
         });
 
         // -------- Historial de precios --------
-        mb.Entity<PrecioProducto>(e =>
+        modelBuilder.Entity<PrecioProducto>(e =>
         {
             e.ToTable("PreciosProductos");
             e.HasKey(x => x.IdPrecioProducto);
@@ -110,55 +114,113 @@ public class TPIContext : DbContext
              .HasForeignKey(x => x.IdProducto)
              .OnDelete(DeleteBehavior.Cascade); // al borrar producto, se borra su historial
         });
-        mb.Entity<Carrito>(e =>
+        // EN Carrito:
+        modelBuilder.Entity<Carrito>(e =>
         {
             e.ToTable("Carritos");
-            e.HasKey(x => x.IdCarrito);
-            e.Property(x => x.Estado).HasMaxLength(20).IsRequired();
-            e.HasIndex(x => new { x.IdCliente, x.Estado }).HasDatabaseName("IX_Carrito_Cliente_Estado");
-            // si quisieras impedir más de 1 abierto por cliente a nivel DB, podrías usar un trigger/check; acá lo controlamos en servicio.
+            e.HasKey(c => c.IdCarrito);
+            e.Property(c => c.Estado).HasMaxLength(20).IsRequired();
+            e.Property(c => c.FechaCreacionUtc)
+             .HasColumnType("datetime2")
+             .HasDefaultValueSql("GETUTCDATE()")
+             .IsRequired();
         });
 
-        mb.Entity<CarritoItem>(e =>
+        // TPIContext.OnModelCreating
+        modelBuilder.Entity<CarritoItem>(e =>
         {
             e.ToTable("CarritoItems");
-            e.HasKey(x => x.IdCarritoItem);
-            e.Property(x => x.Cantidad).IsRequired();
-            e.HasOne<Carrito>()
-             .WithMany()
-             .HasForeignKey(x => x.IdCarrito)
+            e.HasKey(i => i.IdCarritoItem);
+
+            // Aseguramos nombres reales de columnas
+            e.Property(i => i.IdCarrito).HasColumnName("IdCarrito");
+            e.Property(i => i.IdProducto).HasColumnName("IdProducto");
+            e.Property(i => i.Cantidad).IsRequired();
+
+            // Relación correcta CarritoItem -> Carrito usando la FK explícita
+            e.HasOne(i => i.Carrito)
+             .WithMany(c => c.Items)
+             .HasForeignKey(i => i.IdCarrito)
+             .HasPrincipalKey(c => c.IdCarrito)
              .OnDelete(DeleteBehavior.Cascade);
+
+            // Relación con Producto (sin navegación en la entidad)
             e.HasOne<Producto>()
              .WithMany()
-             .HasForeignKey(x => x.IdProducto)
-             .OnDelete(DeleteBehavior.Restrict); // no borrar producto si está en carritos
-            e.HasIndex(x => new { x.IdCarrito, x.IdProducto }).IsUnique();
+             .HasForeignKey(i => i.IdProducto)
+             .OnDelete(DeleteBehavior.Restrict);
+
+            // (Opcional pero recomendado) Evitar duplicados del mismo producto en el carrito
+            e.HasIndex(i => new { i.IdCarrito, i.IdProducto }).IsUnique();
         });
 
+
         // Ventas
-        mb.Entity<Venta>(e =>
+        modelBuilder.Entity<Venta>(e =>
         {
             e.ToTable("Ventas");
             e.HasKey(x => x.IdVenta);
             e.Property(x => x.FechaHoraVentaUtc).IsRequired();
         });
 
-        mb.Entity<VentaDetalle>(e =>
+        modelBuilder.Entity<VentaDetalle>(e =>
         {
             e.ToTable("VentaDetalles");
             e.HasKey(x => x.IdVentaDetalle);
-            e.Property(x => x.PrecioUnitario).HasColumnType("decimal(18,2)").IsRequired();
+
+            e.Property(x => x.ProductoNombre)
+             .HasMaxLength(200)
+             .IsRequired();
+
+            e.Property(x => x.PrecioUnitario)
+             .HasColumnType("decimal(18,2)")
+             .IsRequired();
+
+            e.Property(x => x.SubtotalConDescuento)
+             .HasColumnType("decimal(18,2)")
+             .IsRequired();
+
+            e.Property(x => x.PorcentajeDescuento)
+             .HasColumnType("decimal(18,2)");
+
+            e.Property(x => x.CodigoDescuento)
+             .HasMaxLength(64);
+
             e.HasOne<Venta>()
              .WithMany()
              .HasForeignKey(x => x.IdVenta)
              .OnDelete(DeleteBehavior.Cascade);
+
             e.HasOne<Producto>()
              .WithMany()
              .HasForeignKey(x => x.IdProducto)
              .OnDelete(DeleteBehavior.Restrict);
         });
+
+
+
+        modelBuilder.Entity<Descuento>(b =>
+        {
+            b.HasKey(x => x.IdDescuento);
+
+            b.Property(x => x.Codigo).IsRequired().HasMaxLength(64);
+            b.HasIndex(x => x.Codigo).IsUnique();
+
+            // Si tu columna es decimal(9,2) ajustá acá
+            b.Property("Porcentaje").HasColumnType("decimal(18,2)");
+
+            // Si NO tenés navegación en la entidad:
+            b.HasOne<Producto>()
+             .WithMany()
+             .HasForeignKey("IdProducto")
+             .OnDelete(DeleteBehavior.Cascade);
+
+            
+        });
     }
 }
+
+
 
 
 

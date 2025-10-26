@@ -4,18 +4,16 @@
 @using API.Clients
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.JSInterop
-@using BlazorApp.Client 
+@using BlazorApp.Client
 @inject HttpClient Http
-@inject NavigationManager Navigation
-@inject IJSRuntime JSRuntime
-@inject AuthStateProvider AuthStateProvider 
+@inject NavigationManager navigationManager
+@inject IJSRuntime jsRuntime
+@inject AuthStateProvider authStateProvider
 @rendermode InteractiveWebAssembly
 
-@* --- 2. Título --- *@
 <PageTitle>Iniciar Sesión</PageTitle>
 <h3>Iniciar Sesión</h3>
 
-@* --- 3. HTML del Formulario --- *@
 <EditForm Model="loginModel" OnValidSubmit="HandleLogin" FormName="loginForm">
     <DataAnnotationsValidator />
 
@@ -31,7 +29,6 @@
         <ValidationMessage For="() => loginModel.Password" />
     </div>
 
-    @* Muestra mensaje de error si login falla *@
     @if (!string.IsNullOrEmpty(errorMessage))
     {
         <div class="alert alert-danger" role="alert">
@@ -40,18 +37,24 @@
     }
 
     <button type="submit" class="btn btn-primary">Ingresar</button>
-    <a href="/usuarios/agregar" class="btn btn-link">Registrarse</a> @* Link a registro *@
+    <a href="/usuarios/agregar" class="btn btn-link">Registrarse</a>
 
 </EditForm>
 
 
-@* --- 4. INICIO DEL BLOQUE @code --- *@
 @code {
-    // Propiedades del componente
     private LoginRequestDTO loginModel = new LoginRequestDTO();
     private string? errorMessage;
 
-    // Método que se ejecuta al enviar el formulario
+    // Si el usuario ya está logueado e intenta ir a "/", lo pateamos al dashboard
+    protected override void OnInitialized()
+    {
+        if (authStateProvider.CurrentUser != null)
+        {
+            navigationManager.NavigateTo("/dashboard");
+        }
+    }
+
     private async Task HandleLogin()
     {
         errorMessage = null;
@@ -61,14 +64,10 @@
 
             if (user != null)
             {
-                // --- INICIO CAMBIO ---
-                // Guardamos el usuario en nuestro servicio de estado
-                await AuthStateProvider.Login(user);
-                // --- FIN CAMBIO ---
+                await authStateProvider.Login(user);
 
-                // Ya no necesitamos el alert aquí, el layout mostrará la bienvenida
-                // await JSRuntime.InvokeVoidAsync("alert", $"¡Bienvenido/a {user.Nombre}!");
-                Navigation.NavigateTo("/dashboard"); // Redirige a Home/Dashboard
+                // Al loguearse, lo mandamos al dashboard
+                navigationManager.NavigateTo("/dashboard");
             }
             else
             {
@@ -81,5 +80,5 @@
             errorMessage = "Ocurrió un error al intentar iniciar sesión. Intente más tarde.";
         }
     }
+}
 
-} 

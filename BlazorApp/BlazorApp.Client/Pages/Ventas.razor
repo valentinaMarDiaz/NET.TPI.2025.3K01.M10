@@ -1,0 +1,214 @@
+﻿@page "/ventas"
+@using DTOs
+@using API.Clients
+@using Microsoft.JSInterop
+@using Microsoft.AspNetCore.Components.Forms @* <-- ¡ESTA LÍNEA FALTABA! *@
+@inject AuthStateProvider authStateProvider
+@inject NavigationManager navigationManager
+@inject IJSRuntime jsRuntime
+@rendermode InteractiveWebAssembly
+
+<PageTitle>Listado de Ventas</PageTitle>
+
+<h3>Listado de Ventas</h3>
+
+@if (cargando)
+{
+    <p><em>Cargando...</em></p>
+}
+else if (!string.IsNullOrEmpty(error))
+{
+    <div class="alert alert-danger">@error</div>
+}
+else
+{
+    @* --- Sección de Filtros --- *@
+    <div class="row g-3 mb-3 p-3 border rounded bg-light">
+        <div class="col-md-3">
+            <label for="filtroCliente" class="form-label">ID Cliente</label>
+            <InputNumber id="filtroCliente" class="form-control" @bind-Value="filtroIdCliente" />
+        </div>
+        <div class="col-md-4">
+            <label for="filtroDesde" class="form-label">Desde (Fecha Local)</label>
+            <InputDate id="filtroDesde" class="form-control" @bind-Value="filtroDesde" />
+        </div>
+        <div class="col-md-4">
+            <label for="filtroHasta" class="form-label">Hasta (Fecha Local)</label>
+            <InputDate id="filtroHasta" class="form-control" @bind-Value="filtroHasta" />
+        </div>
+        <div class="col-md-1 d-flex align-items-end">
+            <button class="btn btn-primary w-100" @onclick="CargarVentasAsync">Filtrar</button>
+        </div>
+    </div>
+
+    @* --- Tabla de Resultados --- *@
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>ID Venta</th>
+                    <th>Cliente</th>
+                    <th>ID Cliente</th>
+                    <th>Fecha (Local)</th>
+                    <th class="text-end">Total</th>
+                    <th class="text-center" style="width: 200px;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (ventas == null || !ventas.Any())
+                {
+                    <tr>
+                        <td colspan="6" class="text-center">No se encontraron ventas.</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var v in ventas)
+                    {
+                        <tr>
+                            <td>@v.IdVenta</td>
+                            <td>@v.ClienteNombre</td>
+                            <td>@v.IdCliente</td>
+                            <td>@v.FechaHoraVentaUtc.ToLocalTime().ToString("g")</td>
+                            <td class="text-end">
+                                @* Usamos TotalListado que viene de la API para la lista *@
+                                @v.TotalListado.ToString("C")
+                            </td>
+                            <td class="text-center">
+                                <button class="btn btn-sm btn-outline-info me-2" @onclick="() => VerDetalleAsync(v.IdVenta)" disabled="@(v.IdVenta == idVentaCargandoDetalle)">
+                                    @if (v.IdVenta == idVentaCargandoDetalle)
+                                    {
+                                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                    }
+                                    else
+                                    {
+                                        <text>
+                                            @* <-- ESTA LÍNEA ES NUEVA *@
+                                            <span class="bi bi-search" aria-hidden="true"></span> Ver Detalle
+                                        </text> @* <-- ESTA LÍNEA ES NUEVA *@
+                                    }
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" @onclick="() => EliminarVentaAsync(v)">
+                                    <span class="bi bi-trash-fill" aria-hidden="true"></span>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<VentaDTO>? ventas;
+    private bool cargando = true;
+    private string? error;
+    private int idVentaCargandoDetalle = 0; // Para el spinner del botón "Ver Detalle"
+
+    // Filtros (los campos bind-eables)
+    private int? filtroIdCliente;
+    private DateTime? filtroDesde;
+    private DateTime? filtroHasta;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Seguridad: Solo Vendedores pueden ver esta página
+        if (authStateProvider.CurrentUser == null || authStateProvider.CurrentUser.TipoUsuario != "Vendedor")
+        {
+            navigationManager.NavigateTo("/login"); // O a /dashboard
+            return;
+        }
+        await CargarVentasAsync();
+    }
+
+    private async Task CargarVentasAsync()
+    {
+        cargando = true;
+        error = null;
+        ventas = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            // Convertimos fechas locales (si existen) a UTC para la API
+            DateTime? desdeUtc = filtroDesde.HasValue ? DateTime.SpecifyKind(filtroDesde.Value, DateTimeKind.Local).ToUniversalTime() : null;
+            DateTime? hastaUtc = filtroHasta.HasValue ? DateTime.SpecifyKind(filtroHasta.Value, DateTimeKind.Local).ToUniversalTime() : null;
+
+            // VentaApiClient es estático
+            ventas = (await VentaApiClient.ListAsync(filtroIdCliente, desdeUtc, hastaUtc)).ToList();
+        }
+        catch (Exception ex)
+        {
+            error = $"Error al cargar ventas: {ex.Message}";
+            Console.WriteLine(error);
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private async Task VerDetalleAsync(int idVenta)
+    {
+        idVentaCargandoDetalle = idVenta; // Activa el spinner
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            // VentaApiClient es estático
+            var det = await VentaApiClient.GetAsync(idVenta);
+            if (det == null)
+            {
+                await jsRuntime.InvokeVoidAsync("alert", "No se encontraron detalles para esta venta.");
+                return;
+            }
+
+            // Construimos el mensaje (igual que en WinForms)
+            var lineas = det.Detalles.Select(d =>
+            {
+                var baseLinea = $"- {d.ProductoNombre}: {d.Cantidad} x {d.PrecioUnitario:N2}";
+                if (d.PorcentajeDescuento.HasValue && !string.IsNullOrWhiteSpace(d.CodigoDescuento))
+                    baseLinea += $" | Cód: {d.CodigoDescuento} (%: {d.PorcentajeDescuento:N2})";
+                baseLinea += $" => {d.SubtotalConDescuento:N2}";
+                return baseLinea;
+            });
+
+            var cuerpo = $"Venta #{det.IdVenta}\n" +
+                         $"Cliente: {det.ClienteNombre}\n" +
+                         $"Fecha: {det.FechaHoraVentaUtc.ToLocalTime():g}\n\n" +
+                         "--- Detalles ---\n" +
+                         string.Join("\n", lineas) +
+                         $"\n\nTOTAL: {det.Total:N2}"; // Total usa la suma de detalles
+
+            await jsRuntime.InvokeVoidAsync("alert", cuerpo);
+        }
+        catch (Exception ex)
+        {
+            await jsRuntime.InvokeVoidAsync("alert", $"Error al ver detalle: {ex.Message}");
+        }
+        finally
+        {
+            idVentaCargandoDetalle = 0; // Desactiva el spinner
+        }
+    }
+
+    private async Task EliminarVentaAsync(VentaDTO venta)
+    {
+        // Usamos la instancia jsRuntime
+        bool confirmado = await jsRuntime.InvokeAsync<bool>("confirm", $"¿Eliminar la Venta #{venta.IdVenta} del cliente '{venta.ClienteNombre}'?\n\n¡ESTO RESTAURARÁ EL STOCK DE LOS PRODUCTOS VENDIDOS!");
+        if (!confirmado) return;
+
+        try
+        {
+            // VentaApiClient es estático
+            await VentaApiClient.DeleteAsync(venta.IdVenta);
+            await CargarVentasAsync(); // Recargamos la lista
+        }
+        catch (Exception ex)
+        {
+            await jsRuntime.InvokeVoidAsync("alert", $"Error al eliminar la venta: {ex.Message}");
+        }
+    }
+}
+

@@ -134,7 +134,7 @@
             if (response.IsSuccessStatusCode)
             {
                 await JSRuntime.InvokeVoidAsync("alert", "¡Usuario registrado con éxito!");
-                Navigation.NavigateTo("/usuarios");
+                Navigation.NavigateTo("/login");
             }
             else
             {

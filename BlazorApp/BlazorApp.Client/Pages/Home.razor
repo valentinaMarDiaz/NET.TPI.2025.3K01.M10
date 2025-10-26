@@ -1,7 +1,128 @@
 ﻿@page "/dashboard"
+@using BlazorApp.Client
+@using DTOs
+@inject AuthStateProvider authStateProvider
+@inject NavigationManager navigationManager
+@implements IDisposable
 
 <PageTitle>Home</PageTitle>
 
-<h1>Hello, world!</h1>
+@* Solo renderizamos algo si el usuario está cargado *@
+@if (user != null)
+{
+    <h1>¡Bienvenido, @user.Nombre!</h1>
 
-Welcome to your new app.
+    @if (user.TipoUsuario == "Vendedor")
+    {
+        <p class="lead">Selecciona una tarea de administración para comenzar.</p>
+        <hr />
+        <h3>Panel de Vendedor</h3>
+        <div class="row g-3 mt-2">
+            <div class="col-md-4">
+                <a href="/productos" class="card card-link shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary">Gestionar Productos</h5>
+                        <p class="card-text">Ver, agregar, editar y eliminar productos.</p>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-4">
+                <a href="/ventas" class="card card-link shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary">Ver Ventas</h5>
+                        <p class="card-text">Revisar el historial de ventas completadas.</p>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-4">
+                <a href="/descuentos" class="card card-link shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary">Administrar Descuentos</h5>
+                        <p class="card-text">Crear y editar códigos de descuento.</p>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-4">
+                <a href="/categorias" class="card card-link shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary">Gestionar Categorías</h5>
+                        <p class="card-text">Editar las categorías de productos.</p>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-4">
+                <a href="/usuarios" class="card card-link shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary">Gestionar Usuarios</h5>
+                        <p class="card-text">Ver y editar usuarios del sistema.</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+    }
+    else if (user.TipoUsuario == "Cliente")
+    {
+        <p class="lead">Selecciona una opción para comenzar tu compra.</p>
+        <hr />
+        <h3>Portal del Cliente</h3>
+        <div class="row g-3 mt-2">
+            <div class="col-md-6">
+                <a href="/productos" class="card card-link shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary">Ver Catálogo de Productos</h5>
+                        <p class="card-text">Explora nuestros productos y agrégalos al carrito.</p>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-6">
+                <a href="/carrito" class="card card-link shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary">Ir a mi Carrito</h5>
+                        <p class="card-text">Revisa tu carrito y completa tu compra.</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+    }
+}
+
+@* Un poco de CSS para que las tarjetas parezcan clickeables *@
+<style>
+    .card-link {
+        text-decoration: none;
+        color: inherit;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+        .card-link:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+        }
+</style>
+
+
+@code {
+    private LoginResponseDTO? user;
+
+    protected override void OnInitialized()
+    {
+        // Nos suscribimos al evento por si el usuario cierra sesión
+        authStateProvider.OnChange += StateHasChanged;
+
+        // Cargamos el usuario actual
+        user = authStateProvider.CurrentUser;
+
+        // Si el usuario NO está logueado, lo redirigimos al Login (que está en "/")
+        if (user == null)
+        {
+            navigationManager.NavigateTo("/");
+        }
+    }
+
+    // Importante para desuscribirnos y evitar memory leaks
+    public void Dispose()
+    {
+        authStateProvider.OnChange -= StateHasChanged;
+    }
+}
+

@@ -1,71 +1,95 @@
-﻿@* --- Directivas OBLIGATORIAS al principio, CADA UNA EN SU LÍNEA --- *@
-@inherits LayoutComponentBase
-@using BlazorApp.Client // Asegúrate que sea tu namespace
+﻿@inherits LayoutComponentBase
+@using BlazorApp.Client
+@using API.Clients
 @inject AuthStateProvider AuthStateProvider
 @inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@* @inject CarritoApiClient CarritoApi <- ELIMINAMOS ESTA LÍNEA *@
 @implements IDisposable
 
-@* --- Estructura HTML del Layout --- *@
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
-
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-
-            @* --- Lógica para mostrar Usuario o Login --- *@
-            <div class="ms-auto">
-                @if (AuthStateProvider.CurrentUser != null)
-                {
-                    <span class="me-3">
-                        Hola, @AuthStateProvider.CurrentUser.Nombre!
-                    </span>
-                    <button class="btn btn-link" @onclick="Logout">Cerrar Sesión</button>
-                }
-                else
-                {
-                    <a href="/login">Login</a>
-                }
-            </div>
-            @* --- Fin Lógica Usuario/Login --- *@
+<CascadingValue Value="this">
+    <div class="page">
+        <div class="sidebar">
+            <NavMenu CarritoItemCount="_carritoCantidad" />
         </div>
 
-        <article class="content px-4">
-            @* --- Placeholder para el contenido de la página --- *@
-            @Body
-        </article>
-    </main>
-</div>
+        <main>
+            <div class="top-row px-4">
+                <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
 
-@* Error UI (Opcional) *@
+                <div class="ms-auto">
+                    @if (AuthStateProvider.CurrentUser != null)
+                    {
+                        <span class="me-3">
+                            Hola, @AuthStateProvider.CurrentUser.Nombre!
+                        </span>
+                        <button class="btn btn-link" @onclick="Logout">Cerrar Sesión</button>
+                    }
+                    else
+                    {
+                        <a href="/login">Login</a>
+                    }
+                </div>
+            </div>
+
+            <article class="content px-4">
+                @Body
+            </article>
+        </main>
+    </div>
+</CascadingValue>
+
 <div id="blazor-error-ui">
     An unhandled error has occurred.
     <a href="" class="reload">Reload</a>
     <a class="dismiss">🗙</a>
 </div>
 
-@* --- INICIO BLOQUE @code --- *@
 @code {
-    // Se ejecuta al inicializar el layout
-    protected override void OnInitialized()
+    private int _carritoCantidad = 0;
+
+    protected override async Task OnInitializedAsync()
     {
-        // Suscribirse al evento de cambio de estado de autenticación
-        AuthStateProvider.OnChange += StateHasChanged;
+        AuthStateProvider.OnChange += HandleAuthStateChanged;
+        await ActualizarBadgeCarritoAsync();
     }
 
-    // Se ejecuta al destruir el layout (importante!)
+    // Método público para ser llamado desde hijos
+    public async Task ActualizarBadgeCarritoAsync()
+    {
+        _carritoCantidad = 0;
+        if (AuthStateProvider.CurrentUser != null && AuthStateProvider.CurrentUser.TipoUsuario == "Cliente")
+        {
+            try
+            {
+                // --- CAMBIO CLAVE: Usamos la clase estática directamente ---
+                var carrito = await CarritoApiClient.GetAsync(AuthStateProvider.CurrentUser.Id);
+                _carritoCantidad = carrito?.CantidadTotal ?? 0;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al obtener cantidad del carrito: {ex.Message}");
+                _carritoCantidad = 0;
+            }
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void HandleAuthStateChanged()
+    {
+        await ActualizarBadgeCarritoAsync();
+    }
+
     public void Dispose()
     {
-        // Desuscribirse para evitar memory leaks
-        AuthStateProvider.OnChange -= StateHasChanged;
+        AuthStateProvider.OnChange -= HandleAuthStateChanged;
     }
 
-    // Método para el botón "Cerrar Sesión"
     private async Task Logout()
     {
         await AuthStateProvider.Logout();
-        Navigation.NavigateTo("/login"); // Redirige a login
+        _carritoCantidad = 0;
+        await InvokeAsync(StateHasChanged);
+        Navigation.NavigateTo("/login");
     }
 }

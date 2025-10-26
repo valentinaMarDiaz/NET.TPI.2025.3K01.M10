@@ -1,0 +1,275 @@
+﻿@page "/carrito"
+@using DTOs
+@using API.Clients
+@using Microsoft.JSInterop
+@using BlazorApp.Client.Layout
+@inject HttpClient Http
+@inject NavigationManager navigationManager
+@inject IJSRuntime jsRuntime
+@inject AuthStateProvider authStateProvider
+@rendermode InteractiveWebAssembly
+
+<PageTitle>Mi Carrito</PageTitle>
+
+<h3>Mi Carrito de Compras</h3>
+
+@if (cargando)
+{
+    <p><em>Cargando carrito...</em></p>
+}
+else if (!string.IsNullOrEmpty(error))
+{
+    <div class="alert alert-danger">@error</div>
+}
+else if (carrito == null || carrito.Items.Count == 0)
+{
+    <p>Tu carrito está vacío.</p>
+    <button class="btn btn-primary" @onclick='() => navigationManager.NavigateTo("/productos")'>Ver Productos</button>
+}
+else
+{
+    <div class="table-responsive mb-3">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th class="text-end">Precio Unit.</th>
+                    <th class="text-center">Cantidad</th>
+                    <th class="text-center">Descuento</th>
+                    <th class="text-end">Subtotal</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in carrito.Items)
+                {
+                    <tr>
+                        <td>@item.ProductoNombre</td>
+                        <td class="text-end">@item.PrecioUnitario.ToString("C")</td>
+                        <td class="text-center">@item.Cantidad</td>
+                        <td class="text-center">
+                            @if (item.Porcentaje.HasValue)
+                            {
+                                <span class="badge bg-success" title="@item.CodigoDescuento">@item.Porcentaje.Value.ToString("N0")%</span>
+                            }
+                            else
+                            {
+                                <span>-</span>
+                            }
+                        </td>
+                        <td class="text-end">@item.Subtotal.ToString("C")</td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-danger" title="Eliminar del carrito"
+                                    @onclick="() => EliminarItem(item)">
+                                <span class="bi bi-trash-fill" aria-hidden="true"></span>
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="4" class="text-end fw-bold">TOTAL:</td>
+                    <td class="text-end fw-bold">@carrito.Total.ToString("C")</td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <div class="row gy-3">
+        <div class="col-md-6">
+            <div class="input-group">
+                <input type="text" class="form-control" placeholder="Código de descuento..." @bind="codigoDescuento" />
+                <button class="btn btn-outline-secondary" type="button" @onclick="AplicarCodigo" disabled="@aplicandoCodigo">
+                    @if (aplicandoCodigo)
+                    {
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    }
+                    else
+                    {
+                        <span>Aplicar</span>
+                    }
+                </button>
+            </div>
+            @if (!string.IsNullOrEmpty(errorCodigo))
+            {
+                <div class="text-danger mt-1 small">@errorCodigo</div>
+            }
+            @if (!string.IsNullOrEmpty(successCodigo))
+            {
+                <div class="text-success mt-1 small">@successCodigo</div>
+            }
+        </div>
+
+        <div class="col-md-6 text-md-end">
+            <button class="btn btn-secondary me-2" @onclick='() => navigationManager.NavigateTo("/productos")'>Seguir Comprando</button>
+            <button class="btn btn-success" @onclick="ConfirmarCompra" disabled="@confirmandoCompra">
+                @if (confirmandoCompra)
+                {
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                }
+                else
+                {
+                    <span>Confirmar Compra</span>
+                }
+            </button>
+        </div>
+    </div>
+}
+
+@code {
+    private CarritoDTO? carrito;
+    private bool cargando = true;
+    private string? error;
+    private string? codigoDescuento;
+    private string? errorCodigo;
+    private string? successCodigo;
+    private bool aplicandoCodigo = false;
+    private bool confirmandoCompra = false;
+
+    // Recibimos el MainLayout "padre"
+    [CascadingParameter]
+    public MainLayout? Layout { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Usamos la INSTANCIA inyectada (variable authStateProvider)
+        if (authStateProvider.CurrentUser == null || authStateProvider.CurrentUser.TipoUsuario != "Cliente")
+        {
+            // Usamos la INSTANCIA inyectada (variable navigationManager)
+            navigationManager.NavigateTo("/login", forceLoad: true);
+            return;
+        }
+        await CargarCarrito();
+    }
+
+    private async Task CargarCarrito()
+    {
+        cargando = true;
+        error = null;
+        carrito = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            // Llamada estática y usamos la INSTANCIA authStateProvider
+            carrito = await CarritoApiClient.GetAsync(authStateProvider.CurrentUser!.Id);
+        }
+        catch (Exception ex)
+        {
+            error = $"Error al cargar el carrito: {ex.Message}";
+            Console.WriteLine(error);
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private async Task EliminarItem(CarritoItemDTO item)
+    {
+        // Usamos la INSTANCIA inyectada (variable jsRuntime)
+        bool confirmado = await jsRuntime.InvokeAsync<bool>("confirm", $"¿Quitar '{item.ProductoNombre}' del carrito?");
+        if (!confirmado) return;
+
+        try
+        {
+            // Llamada estática y usamos la INSTANCIA authStateProvider
+            await CarritoApiClient.RemoveAsync(authStateProvider.CurrentUser!.Id, item.IdProducto);
+            await CargarCarrito(); // Recarga el carrito
+
+            // Llamada al método del Layout para actualizar badge
+            if (Layout is not null)
+            {
+                await Layout.ActualizarBadgeCarritoAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            error = $"Error al eliminar item: {ex.Message}";
+            await jsRuntime.InvokeVoidAsync("alert", error);
+        }
+    }
+
+    private async Task AplicarCodigo()
+    {
+        if (string.IsNullOrWhiteSpace(codigoDescuento)) return;
+
+        aplicandoCodigo = true;
+        errorCodigo = null;
+        successCodigo = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            // Llamada estática y usamos la INSTANCIA authStateProvider
+            await CarritoApiClient.AplicarCodigoAsync(authStateProvider.CurrentUser!.Id, codigoDescuento);
+            successCodigo = $"Código '{codigoDescuento.ToUpper()}' aplicado.";
+            codigoDescuento = string.Empty;
+            await CargarCarrito(); // Recargar para ver el descuento
+
+            if (Layout is not null)
+            {
+                await Layout.ActualizarBadgeCarritoAsync(); // Actualiza por si acaso
+            }
+        }
+        catch (Exception ex)
+        {
+            // Intentamos validar el código para dar un mejor error
+            // (Asume que DescuentoApiClient es estático)
+            var desc = await DescuentoApiClient.ValidarCodigoAsync(codigoDescuento);
+            if (desc == null)
+            {
+                errorCodigo = "El código es inválido o está vencido.";
+            }
+            else
+            {
+                errorCodigo = "El código es válido, pero no aplica a ningún producto de tu carrito.";
+            }
+            Console.WriteLine($"Error al aplicar código: {ex.Message}");
+        }
+        finally
+        {
+            aplicandoCodigo = false;
+        }
+    }
+
+    private async Task ConfirmarCompra()
+    {
+        // Usamos la INSTANCIA inyectada (variable jsRuntime)
+        bool confirmado = await jsRuntime.InvokeAsync<bool>("confirm", $"¿Confirmar la compra por un total de {carrito?.Total:C}?");
+        if (!confirmado) return;
+
+        confirmandoCompra = true;
+        error = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            // Llamada estática y usamos la INSTANCIA authStateProvider
+            var resultado = await CarritoApiClient.ConfirmarAsync(authStateProvider.CurrentUser!.Id);
+            await jsRuntime.InvokeVoidAsync("alert", $"¡Compra confirmada con éxito!\nID Venta: {resultado.IdVenta}\nTotal: {resultado.Total:C}");
+
+            if (Layout is not null)
+            {
+                await Layout.ActualizarBadgeCarritoAsync(); // El carrito quedará vacío
+            }
+
+            // Usamos la INSTANCIA inyectada (variable navigationManager)
+            navigationManager.NavigateTo("/dashboard");
+        }
+        catch (Exception ex)
+        {
+            error = $"Error al confirmar la compra: {ex.Message}";
+            Console.WriteLine(error);
+            await jsRuntime.InvokeVoidAsync("alert", error);
+        }
+        finally
+        {
+            confirmandoCompra = false;
+        }
+    }
+}
+
+

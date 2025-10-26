@@ -1,4 +1,8 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+﻿@using BlazorApp.Client
+@inject AuthStateProvider authStateProvider
+@implements IDisposable
+
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">BlazorApp</a>
     </div>
@@ -14,41 +18,82 @@
             </NavLink>
         </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
-            </NavLink>
-        </div>
+        @* ELIMINAMOS EL ENLACE A 'COUNTER' DE AQUÍ *@
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
-            </NavLink>
-        </div>
+        @* Solo muestra estos links si el usuario ESTÁ logueado *@
+        @if (authStateProvider.CurrentUser != null)
+        {
+            @* ELIMINAMOS EL ENLACE A 'WEATHER' DE AQUÍ *@
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="productos">
-                <span class="bi bi-box-seam-fill" aria-hidden="true"></span> Productos
-            </NavLink>
-        </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="productos">
+                    <span class="bi bi-box-seam-fill" aria-hidden="true"></span> Productos
+                </NavLink>
+            </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="categorias">
-                <span class="bi bi-tags-fill" aria-hidden="true"></span> Categorías
-            </NavLink>
-        </div>
+            @* MUESTRA "CARRITO" SOLO SI ES CLIENTE *@
+            @if (authStateProvider.CurrentUser.TipoUsuario == "Cliente")
+            {
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="carrito">
+                        <span class="bi bi-cart-fill position-relative" aria-hidden="true">
+                            @* El badge (numerito) *@
+                            @if (CarritoItemCount > 0)
+                            {
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                    @CarritoItemCount
+                                    <span class="visually-hidden">items en carrito</span>
+                                </span>
+                            }
+                        </span> Carrito
+                    </NavLink>
+                </div>
+            }
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="usuarios">
-                <span class="bi bi-people-fill" aria-hidden="true"></span> Usuarios
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="descuentos">
-                <span class="bi bi-tags-fill" aria-hidden="true"></span> Descuentos
-            </NavLink>
-        </div>
+            @* MUESTRA ESTO SOLO SI ES VENDEDOR *@
+            @if (authStateProvider.CurrentUser.TipoUsuario == "Vendedor")
+            {
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="categorias">
+                        <span class="bi bi-tags-fill" aria-hidden="true"></span> Categorías
+                    </NavLink>
+                </div>
 
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="usuarios">
+                        <span class="bi bi-people-fill" aria-hidden="true"></span> Usuarios
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="descuentos">
+                        <span class="bi bi-tags-fill" aria-hidden="true"></span> Descuentos
+                    </NavLink>
+                </div>
+
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="ventas">
+                        <span class="bi bi-cash-stack" aria-hidden="true"></span> Ventas
+                    </NavLink>
+                </div>
+            }
+        }
     </nav>
 </div>
+
+@code {
+    [Parameter]
+    public int CarritoItemCount { get; set; }
+
+    // Necesitamos suscribirnos para que el menú se actualice cuando cambie el login
+    protected override void OnInitialized()
+    {
+        authStateProvider.OnChange += StateHasChanged;
+    }
+
+    // Y desuscribirnos
+    public void Dispose()
+    {
+        authStateProvider.OnChange -= StateHasChanged;
+    }
+}
 

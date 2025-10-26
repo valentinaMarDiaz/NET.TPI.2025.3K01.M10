@@ -1,0 +1,155 @@
+﻿@page "/descuentos/agregar"
+@using Microsoft.AspNetCore.Components.Forms
+@using DTOs
+@using API.Clients
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@inject BlazorApp.Client.AuthStateProvider AuthStateProvider
+@rendermode InteractiveWebAssembly
+
+<PageTitle>Nuevo descuento</PageTitle>
+<h3>Nuevo descuento</h3>
+
+@if (cargando)
+{
+    <p><em>Cargando...</em></p>
+}
+else
+{
+    <EditForm Model="model" OnValidSubmit="Guardar">
+        <DataAnnotationsValidator />
+
+        @if (!string.IsNullOrEmpty(error))
+        {
+            <div class="alert alert-danger" role="alert">@error</div>
+        }
+
+        <div class="mb-3">
+            <label class="form-label">Producto *</label>
+            <InputSelect class="form-select" TValue="int" @bind-Value="model.IdProducto">
+                <option value="0">-- Seleccione --</option>
+                @foreach (var p in productos)
+                {
+                    <option value="@p.IdProducto">@p.Nombre</option>
+                }
+            </InputSelect>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Inicio (local) *</label>
+                <input class="form-control" type="datetime-local" @bind="inicioLocal" />
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Caduca (local) *</label>
+                <input class="form-control" type="datetime-local" @bind="caducaLocal" />
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Código *</label>
+            <!-- usar elemento HTML + oninput -->
+            <input class="form-control"
+                   @bind="model.Codigo"
+                   @bind:event="oninput" />
+            <div class="form-text">3–24 caracteres, sólo A-Z, 0-9 y “-”. Se guarda en mayúsculas.</div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Descripción *</label>
+            <!-- idem: elemento HTML + oninput -->
+            <input class="form-control"
+                   @bind="model.Descripcion"
+                   @bind:event="oninput" />
+            <div class="form-text">1–200 caracteres.</div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Porcentaje *</label>
+            <InputNumber class="form-control"
+                         TValue="decimal"
+                         @bind-Value="model.Porcentaje"
+                         step="0.01" min="0.01" max="100" />
+        </div>
+
+        <button class="btn btn-primary" type="submit">Guardar</button>
+        <button class="btn btn-secondary ms-2" type="button" @onclick="Volver">Cancelar</button>
+    </EditForm>
+}
+
+@code {
+    private DescuentoCUDTO model = new()
+    {
+        IdProducto = 0,
+        Codigo = "",
+        Descripcion = "",
+        Porcentaje = 10m
+    };
+
+    private DateTime inicioLocal = DateTime.Now;
+    private DateTime caducaLocal = DateTime.Now.AddDays(7);
+
+    private List<ProductoDTO> productos = new();
+    private bool cargando = true;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthStateProvider.CurrentUser is null)
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+
+        try
+        {
+            productos = (await ProductoApiClient.GetAllAsync()).ToList();
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private async Task Guardar()
+    {
+        error = null;
+
+        // Normalizo
+        model.Codigo = (model.Codigo ?? "").Trim().ToUpperInvariant();
+        model.Descripcion = (model.Descripcion ?? "").Trim();
+
+        // Validaciones básicas
+        if (model.IdProducto <= 0) { error = "Seleccione un producto."; return; }
+        if (string.IsNullOrWhiteSpace(model.Codigo)) { error = "El código es obligatorio."; return; }
+        if (model.Codigo.Length is < 3 or > 24) { error = "El código debe tener entre 3 y 24 caracteres."; return; }
+        if (!System.Text.RegularExpressions.Regex.IsMatch(model.Codigo, "^[A-Z0-9-]+$")) { error = "El código sólo admite letras mayúsculas, números y guiones."; return; }
+        if (model.Descripcion.Length is < 1 or > 200) { error = "La descripción debe tener entre 1 y 200 caracteres."; return; }
+        if (model.Porcentaje <= 0 || model.Porcentaje > 100) { error = "El porcentaje debe ser > 0 y ≤ 100."; return; }
+
+        // Fechas a UTC
+        var inicioUtc = DateTime.SpecifyKind(inicioLocal, DateTimeKind.Local).ToUniversalTime();
+        var caducaUtc = DateTime.SpecifyKind(caducaLocal, DateTimeKind.Local).ToUniversalTime();
+        if (caducaUtc < inicioUtc) { error = "La fecha de caducidad no puede ser menor a la de inicio."; return; }
+
+        model.FechaInicioUtc = inicioUtc;
+        model.FechaCaducidadUtc = caducaUtc;
+
+        try
+        {
+            var creado = await DescuentoApiClient.AddAsync(model);
+            await JS.InvokeVoidAsync("alert", $"Descuento {creado.Codigo} creado.");
+            Nav.NavigateTo("/descuentos");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message; // muestra el mensaje de la API (p.ej., código duplicado)
+        }
+    }
+
+    private void Volver() => Nav.NavigateTo("/descuentos");
+}

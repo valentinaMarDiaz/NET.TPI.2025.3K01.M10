@@ -9,7 +9,7 @@ public static class VentaApiClient
     static readonly HttpClient client;
     static VentaApiClient()
     {
-        client = new HttpClient { BaseAddress = new Uri("http://localhost:5247/") }; // ajustar puerto
+        client = new HttpClient { BaseAddress = new Uri("https://localhost:7206/") }; // ajustar puerto
         client.DefaultRequestHeaders.Accept.Clear();
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
     }

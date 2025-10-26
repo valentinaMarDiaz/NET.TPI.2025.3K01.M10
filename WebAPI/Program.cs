@@ -1,47 +1,43 @@
-using Application.Services; // Necesario para los Services
-using DTOs;                // Necesario para los DTOs
-using Data;                // Necesario para TPIContext
-using Microsoft.EntityFrameworkCore; // Necesario para Migrate()/EnsureCreated()
-using System;               // Necesario para Exception y Console
+using Application.Services; // Services
+using DTOs;                 // DTOs
+using Data;                 // TPIContext
+using Microsoft.EntityFrameworkCore; // Migrate()
+using System;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- INICIO CONFIGURACIÓN CORS ---
-var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
-
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy(name: MyAllowSpecificOrigins,
-                      policy =>
-                      {
-                          policy.WithOrigins("https://localhost:7282") // <-- USA EL PUERTO HTTPS DE TU BLAZOR APP
-                                .AllowAnyHeader()
-                                .AllowAnyMethod();
-                      });
-});
-// --- FIN CONFIGURACIÓN CORS ---
-
-// Swagger (si lo usas)
+// Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// --- CORS: una sola policy, y con http/https del Blazor host (7282) ---
+var allowedOrigins = new[] {
+    "https://localhost:7282",
+    "http://localhost:7282"
+};
+builder.Services.AddCors(o =>
+{
+    o.AddPolicy("Frontend", p => p
+        .WithOrigins(allowedOrigins)
+        .AllowAnyHeader()
+        .AllowAnyMethod());
+});
 
 var app = builder.Build();
 
 // Crear/actualizar DB al inicio
 try
 {
-    using var ctx = new TPIContext(); // Asegúrate que TPIContext esté en el namespace Data
-    // Descomenta la línea que corresponda a tu enfoque:
-    // ctx.Database.Migrate(); // Si usas Migraciones
-    ctx.Database.Migrate();
+    using var ctx = new TPIContext();
+    ctx.Database.Migrate();      // usa migraciones
+    // ctx.Database.EnsureCreated(); // alternativo si no usás migraciones
 }
 catch (Exception ex)
 {
     Console.WriteLine("DB init error: " + ex.Message);
-    // Considera manejar este error de forma más robusta en producción
 }
 
-// Configuración del pipeline HTTP
+// Pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -49,12 +45,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors("Frontend");
 
-// --- INICIO APLICAR CORS ---
-app.UseCors(MyAllowSpecificOrigins); // Aplicamos la política CORS
-// --- FIN APLICAR CORS ---
-
-// --- INICIO ENDPOINTS MINIMAL API ---
+// ===================== ENDPOINTS MINIMAL API =====================
 
 // ---------------- AUTH ----------------
 app.MapPost("/auth/register/cliente", (RegisterClienteDTO dto) =>
@@ -74,7 +67,6 @@ app.MapPost("/auth/login", (LoginRequestDTO dto) =>
     var resp = new AuthService().Login(dto);
     return resp is null ? Results.Unauthorized() : Results.Ok(resp);
 });
-
 
 // -------------- CATEGORÍAS --------------
 app.MapGet("/categorias", () => new CategoriaService().GetAll());
@@ -100,7 +92,6 @@ app.MapPut("/categorias", (CategoriaDTO dto) =>
 app.MapDelete("/categorias/{id:int}", (int id) =>
     new CategoriaService().Delete(id) ? Results.NoContent() : Results.NotFound());
 
-
 // ---------------- USUARIOS ----------------
 app.MapGet("/usuarios", () => new UsuarioService().GetAll());
 
@@ -119,18 +110,15 @@ app.MapPut("/usuarios", (UsuarioDTO dto) =>
 app.MapDelete("/usuarios/{id:int}", (int id) =>
     new UsuarioService().Delete(id) ? Results.NoContent() : Results.NotFound());
 
-
 // ---------- PRODUCTOS ----------
 app.MapGet("/productos", () => new ProductoService().GetAll());
 
-// --- ENDPOINT DE DETALLE CORREGIDO ---
 app.MapGet("/productos/{id:int}", (int id) =>
 {
     var servicio = new ProductoService();
     var dto = servicio.Get(id);
-    return dto is null ? Results.NotFound() : Results.Ok(dto); // Devuelve 404 si no existe, 200 OK con el DTO si existe
+    return dto is null ? Results.NotFound() : Results.Ok(dto);
 });
-// --- FIN CORRECCIÓN ---
 
 app.MapPost("/productos", (ProductoDTO dto) =>
 {
@@ -148,9 +136,7 @@ app.MapDelete("/productos/{id:int}", (int id) =>
     new ProductoService().Delete(id) ? Results.NoContent() : Results.NotFound());
 
 app.MapGet("/productos/{id:int}/historial", (int id) =>
-    Results.Ok(new ProductoService().GetHistorial(id))
-);
-
+    Results.Ok(new ProductoService().GetHistorial(id)));
 
 // --- CARRITO ---
 app.MapGet("/carrito/{idCliente:int}", (int idCliente) =>
@@ -192,9 +178,6 @@ app.MapPost("/carrito/{idCliente:int}/item", (int idCliente, int producto, int c
     }
 });
 
-
-
-
 // -------- VENTAS --------
 app.MapGet("/ventas", (int? idCliente, DateTime? desdeUtc, DateTime? hastaUtc) =>
 {
@@ -213,21 +196,58 @@ app.MapDelete("/ventas/{id:int}", (int id) =>
     try { new VentaService().Delete(id); return Results.NoContent(); }
     catch (ArgumentException ex) { return Results.BadRequest(new { error = ex.Message }); }
 });
+
 // ----- DESCUENTOS -----
+// Listado (si tu servicio soporta filtro, podés cambiar a: (string? producto) => Results.Ok(new DescuentoService().GetAll(producto)))
 app.MapGet("/descuentos", () =>
 {
     return Results.Ok(new DescuentoService().GetAll());
 });
 
-app.MapPost("/descuentos", (DescuentoDTO dto) =>
+// *** NUEVO: detalle por ID (lo que faltaba) ***
+app.MapGet("/descuentos/{id:int}", (int id) =>
 {
-    try { return Results.Created("/descuentos", new DescuentoService().Add(dto)); }
+    var dto = new DescuentoService().Get(id);
+    return dto is null ? Results.NotFound() : Results.Ok(dto);
+});
+
+// Crear: recibo CUDTO del cliente y lo mapeo al DTO del service
+app.MapPost("/descuentos", (DescuentoCUDTO cu) =>
+{
+    try
+    {
+        var dto = new DescuentoDTO
+        {
+            IdProducto = cu.IdProducto,
+            FechaInicioUtc = cu.FechaInicioUtc,
+            FechaCaducidadUtc = cu.FechaCaducidadUtc,
+            Descripcion = cu.Descripcion,
+            Codigo = cu.Codigo,
+            Porcentaje = cu.Porcentaje
+        };
+        var creado = new DescuentoService().Add(dto);
+        return Results.Created("/descuentos", creado);
+    }
     catch (ArgumentException ex) { return Results.BadRequest(new { error = ex.Message }); }
 });
 
-app.MapPut("/descuentos", (DescuentoDTO dto) =>
+// Actualizar: idem, mapear CUDTO -> DTO
+app.MapPut("/descuentos", (DescuentoCUDTO cu) =>
 {
-    try { return new DescuentoService().Update(dto) ? Results.NoContent() : Results.NotFound(); }
+    try
+    {
+        var dto = new DescuentoDTO
+        {
+            IdDescuento = cu.IdDescuento,
+            IdProducto = cu.IdProducto,
+            FechaInicioUtc = cu.FechaInicioUtc,
+            FechaCaducidadUtc = cu.FechaCaducidadUtc,
+            Descripcion = cu.Descripcion,
+            Codigo = cu.Codigo,
+            Porcentaje = cu.Porcentaje
+        };
+        return new DescuentoService().Update(dto) ? Results.NoContent() : Results.NotFound();
+    }
     catch (ArgumentException ex) { return Results.BadRequest(new { error = ex.Message }); }
 });
 
@@ -235,11 +255,11 @@ app.MapDelete("/descuentos/{id:int}", (int id) =>
 {
     return new DescuentoService().Delete(id) ? Results.NoContent() : Results.NotFound();
 });
+
 // ----- DESCUENTOS (CLIENTE) -----
 app.MapGet("/descuentos/vigentes", (string? texto) =>
 {
     var svc = new Application.Services.DescuentoService();
-    // filtra por texto (producto o código) y trae solo vigentes, ordenados por caducidad
     return Results.Ok(svc.GetVigentes(texto, DateTime.UtcNow));
 })
 .WithName("GetDescuentosVigentes")
@@ -257,6 +277,6 @@ app.MapGet("/descuentos/validar", (string codigo) =>
 .Produces(StatusCodes.Status404NotFound)
 .WithOpenApi();
 
-// --- FIN ENDPOINTS MINIMAL API ---
+// ===================== FIN ENDPOINTS =====================
 
 app.Run();

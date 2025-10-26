@@ -12,8 +12,10 @@ builder.Services.AddRazorComponents()
 
 // --- LÍNEA AGREGADA CON TU PUERTO ---
 // Configura el HttpClient para que apunte a tu WebAPI usando el puerto 7206
-builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://localhost:7206/") });
+builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://localhost:5247/") });
 // --- FIN LÍNEA AGREGADA ---
+builder.Services.AddScoped<BlazorApp.Client.AuthStateProvider>();
+
 
 var app = builder.Build();
 

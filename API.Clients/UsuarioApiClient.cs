@@ -10,7 +10,7 @@ public static class UsuarioApiClient
 
     static UsuarioApiClient()
     {
-        client = new HttpClient { BaseAddress = new Uri("http://localhost:5247/") }; // tu puerto http
+        client = new HttpClient { BaseAddress = new Uri("https://localhost:7206/") }; // tu puerto http
         client.DefaultRequestHeaders.Accept.Clear();
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
     }

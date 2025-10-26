@@ -11,7 +11,7 @@ namespace API.Clients
 
         static CarritoApiClient()
         {
-            client.BaseAddress = new Uri("http://localhost:5247/"); // puerto de tu WebAPI
+            client.BaseAddress = new Uri("https://localhost:7206/"); // puerto de tu WebAPI
             client.DefaultRequestHeaders.Accept.Clear();
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         }

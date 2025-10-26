@@ -9,7 +9,7 @@ public static class CategoriaApiClient
     private static readonly HttpClient client;
     static CategoriaApiClient()
     {
-        client = new HttpClient { BaseAddress = new Uri("http://localhost:5247/") };
+        client = new HttpClient { BaseAddress = new Uri("https://localhost:7206/") };
         client.DefaultRequestHeaders.Accept.Clear();
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
     }

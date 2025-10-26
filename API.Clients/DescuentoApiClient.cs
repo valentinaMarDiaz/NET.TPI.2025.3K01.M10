@@ -2,6 +2,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Collections.Generic;
 
 namespace API.Clients
 {
@@ -13,8 +14,7 @@ namespace API.Clients
         {
             client = new HttpClient
             {
-                // ⚠ Ajustá si tu WebAPI corre en otro puerto o con HTTPS
-                BaseAddress = new Uri("http://localhost:5247/")
+                BaseAddress = new Uri("https://localhost:7206/") // WebAPI HTTPS
             };
             client.DefaultRequestHeaders.Accept.Clear();
             client.DefaultRequestHeaders.Accept.Add(
@@ -45,14 +45,36 @@ namespace API.Clients
         public static async Task<DescuentoDTO> AddAsync(DescuentoCUDTO dto)
         {
             var r = await client.PostAsJsonAsync("descuentos", dto);
-            r.EnsureSuccessStatusCode();
+            if (!r.IsSuccessStatusCode)
+            {
+                var txt = await r.Content.ReadAsStringAsync();
+                throw new Exception(ParseApiError(txt));
+            }
             return (await r.Content.ReadFromJsonAsync<DescuentoDTO>())!;
         }
 
+        // ← QUEDA SOLO ESTE UpdateAsync
         public static async Task UpdateAsync(DescuentoCUDTO dto)
         {
             var r = await client.PutAsJsonAsync("descuentos", dto);
-            r.EnsureSuccessStatusCode();
+            if (!r.IsSuccessStatusCode)
+            {
+                var txt = await r.Content.ReadAsStringAsync();
+                throw new Exception(ParseApiError(txt));
+            }
+        }
+
+        private static string ParseApiError(string raw)
+        {
+            try
+            {
+                // Tu API devuelve { "error": "mensaje" } cuando algo falla
+                var obj = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(raw);
+                if (obj != null && obj.TryGetValue("error", out var e) && !string.IsNullOrWhiteSpace(e))
+                    return e;
+            }
+            catch { /* ignore */ }
+            return string.IsNullOrWhiteSpace(raw) ? "Error desconocido de API." : raw;
         }
 
         public static async Task DeleteAsync(int id)

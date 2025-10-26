@@ -1,0 +1,116 @@
+﻿@page "/descuentos"
+@using DTOs
+@using API.Clients
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@inject BlazorApp.Client.AuthStateProvider AuthStateProvider
+@rendermode InteractiveWebAssembly
+
+<PageTitle>Descuentos</PageTitle>
+
+<h3>Descuentos</h3>
+
+<div class="row mb-3">
+    <div class="col-md-4">
+        <input class="form-control" placeholder="Filtrar por producto..."
+               @bind="filtro" @bind:event="oninput" />
+    </div>
+    <div class="col-md-8 text-end">
+        <button class="btn btn-primary" @onclick="IrAgregar">Agregar</button>
+        <button class="btn btn-outline-secondary ms-2" @onclick="Load">Buscar</button>
+    </div>
+</div>
+
+@if (cargando)
+{
+    <p><em>Cargando...</em></p>
+}
+else if (error != null)
+{
+    <div class="alert alert-danger">@error</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Código</th>
+                    <th>Producto</th>
+                    <th>%</th>
+                    <th>Inicio</th>
+                    <th>Caduca</th>
+                    <th>Descripción</th>
+                    <th style="width:140px"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var d in descuentos)
+                {
+                    <tr>
+                        <td>@d.Codigo</td>
+                        <td>@d.ProductoNombre</td>
+                        <td>@d.Porcentaje.ToString("N2")</td>
+                        <td>@d.FechaInicioUtc.ToLocalTime()</td>
+                        <td>@d.FechaCaducidadUtc.ToLocalTime()</td>
+                        <td>@d.Descripcion</td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => IrEditar(d.IdDescuento)">Editar</button>
+                            <button class="btn btn-sm btn-outline-danger" @onclick="() => Eliminar(d.IdDescuento, d.Codigo)">Eliminar</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private string filtro = string.Empty;
+    private bool cargando = true;
+    private string? error;
+    private List<DescuentoDTO> descuentos = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthStateProvider.CurrentUser is null)
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        try
+        {
+            cargando = true; error = null;
+            descuentos = (await DescuentoApiClient.GetAllAsync(string.IsNullOrWhiteSpace(filtro) ? null : filtro)).ToList();
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally { cargando = false; }
+    }
+
+    private void IrAgregar() => Nav.NavigateTo("/descuentos/agregar");
+    private void IrEditar(int id) => Nav.NavigateTo($"/descuentos/editar/{id}");
+
+    private async Task Eliminar(int id, string codigo)
+    {
+        var ok = await JS.InvokeAsync<bool>("confirm", $"¿Eliminar descuento {codigo}?");
+        if (!ok) return;
+
+        try
+        {
+            await DescuentoApiClient.DeleteAsync(id);
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Error: {ex.Message}");
+        }
+    }
+}

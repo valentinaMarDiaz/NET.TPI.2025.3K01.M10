@@ -1,19 +1,17 @@
 ﻿using Data;
 using DTOs;
 using Microsoft.EntityFrameworkCore;
-using System;
 using System.Linq;
-using System.Collections.Generic;
 
 namespace Application.Services
 {
     public class DescuentoService
     {
-        public IEnumerable<DescuentoDTO> GetAll()
+        // Listado con filtro opcional por nombre de producto
+        public IEnumerable<DescuentoDTO> GetAll(string? producto = null)
         {
             using var ctx = new TPIContext();
 
-            // No dependemos de navegación: hacemos join para traer el nombre del producto
             var q = from d in ctx.Descuentos
                     join p in ctx.Productos on d.IdProducto equals p.IdProducto
                     select new DescuentoDTO
@@ -28,14 +26,42 @@ namespace Application.Services
                         FechaCaducidadUtc = d.FechaCaducidadUtc
                     };
 
-            return q.ToList();
+            if (!string.IsNullOrWhiteSpace(producto))
+            {
+                var term = producto.Trim();
+                q = q.Where(x => EF.Functions.Like(x.ProductoNombre, $"%{term}%"));
+            }
+
+            return q.OrderBy(x => x.FechaCaducidadUtc).ToList();
+        }
+
+        // *** NUEVO: obtener por Id (para Editar) ***
+        public DescuentoDTO? Get(int id)
+        {
+            using var ctx = new TPIContext();
+
+            var q = from d in ctx.Descuentos
+                    join p in ctx.Productos on d.IdProducto equals p.IdProducto
+                    where d.IdDescuento == id
+                    select new DescuentoDTO
+                    {
+                        IdDescuento = d.IdDescuento,
+                        IdProducto = d.IdProducto,
+                        ProductoNombre = p.Nombre,
+                        Codigo = d.Codigo,
+                        Descripcion = d.Descripcion,
+                        Porcentaje = d.Porcentaje,
+                        FechaInicioUtc = d.FechaInicioUtc,
+                        FechaCaducidadUtc = d.FechaCaducidadUtc
+                    };
+
+            return q.FirstOrDefault();
         }
 
         public DescuentoDTO Add(DescuentoDTO dto)
         {
             using var ctx = new TPIContext();
 
-            // --- Validaciones
             if (dto.IdProducto <= 0) throw new ArgumentException("Debe seleccionar un producto.");
             if (!ctx.Productos.Any(p => p.IdProducto == dto.IdProducto))
                 throw new ArgumentException("El producto indicado no existe.");
@@ -57,9 +83,6 @@ namespace Application.Services
             if (dto.FechaInicioUtc > dto.FechaCaducidadUtc)
                 throw new ArgumentException("La fecha de inicio no puede ser posterior a la de caducidad.");
 
-            // ⚠️ Orden REAL del constructor de tu entidad:
-            // Descuento(int idDescuento, int idProducto, DateTime fechaInicioUtc, DateTime fechaCaducidadUtc,
-            //           string descripcion, string codigo, decimal porcentaje)
             var entity = new Domain.Model.Descuento(
                 0,
                 dto.IdProducto,
@@ -85,7 +108,6 @@ namespace Application.Services
             var d = ctx.Descuentos.FirstOrDefault(x => x.IdDescuento == dto.IdDescuento);
             if (d == null) return false;
 
-            // --- Validaciones
             if (dto.IdProducto <= 0 || !ctx.Productos.Any(p => p.IdProducto == dto.IdProducto))
                 throw new ArgumentException("El producto indicado no existe.");
 
@@ -102,20 +124,15 @@ namespace Application.Services
             if (dto.FechaInicioUtc == default || dto.FechaCaducidadUtc == default || dto.FechaInicioUtc > dto.FechaCaducidadUtc)
                 throw new ArgumentException("Rango de fechas inválido.");
 
-            // ⚠️ Tus propiedades tienen set privado → usamos EF para setear por Entry (evita CS0272)
             var entry = ctx.Entry(d);
-
             entry.Property("IdProducto").CurrentValue = dto.IdProducto;
             entry.Property("Codigo").CurrentValue = codigo;
             entry.Property("Descripcion").CurrentValue = dto.Descripcion?.Trim() ?? string.Empty;
             entry.Property("Porcentaje").CurrentValue = dto.Porcentaje;
 
-            // Por si en tu entidad las fechas tienen otra capitalización (he visto 'FechainicioUtc'…)
             var props = entry.Properties.Select(p => p.Metadata.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
-
             entry.Property(props.Contains("FechaInicioUtc") ? "FechaInicioUtc" : "FechainicioUtc")
                  .CurrentValue = dto.FechaInicioUtc;
-
             entry.Property(props.Contains("FechaCaducidadUtc") ? "FechaCaducidadUtc" : "FechacaducidadUtc")
                  .CurrentValue = dto.FechaCaducidadUtc;
 
@@ -132,9 +149,10 @@ namespace Application.Services
             ctx.SaveChanges();
             return true;
         }
+
         public IEnumerable<DescuentoDTO> GetVigentes(string? texto, DateTime ahoraUtc)
         {
-            using var ctx = new Data.TPIContext();
+            using var ctx = new TPIContext();
 
             var q = from d in ctx.Descuentos
                     join p in ctx.Productos on d.IdProducto equals p.IdProducto
@@ -163,7 +181,7 @@ namespace Application.Services
 
         public DescuentoDTO? GetByCodigoVigente(string codigo)
         {
-            using var ctx = new Data.TPIContext();
+            using var ctx = new TPIContext();
             var now = DateTime.UtcNow;
             var code = (codigo ?? "").Trim().ToUpperInvariant();
 
@@ -184,6 +202,5 @@ namespace Application.Services
 
             return q.FirstOrDefault();
         }
-
     }
 }

@@ -22,12 +22,10 @@ else if (!string.IsNullOrEmpty(error))
 }
 else
 {
-    <div class="row mb-3">
+    <div class="row mb-3 align-items-end">
+        
         <div class="col-md-6">
             <label for="productoSelect" class="form-label">Seleccione un Producto:</label>
-            @* Usamos @onchange para que llame al método CargarHistorialAsync
-                cada vez que el usuario cambia la selección del dropdown.
-            *@
             <select class="form-select" @onchange="OnProductoSeleccionado">
                 <option value="0">-- Elija un producto --</option>
                 @if (_productos != null)
@@ -38,6 +36,14 @@ else
                     }
                 }
             </select>
+        </div>
+        <div class="col-md-6">
+
+            <button class="btn btn-secondary"
+                    @onclick="GenerarPDF"
+                    disabled="@(cargandoHistorial || _selectedProductId == 0 || _historial == null || _historial.Count == 0)">
+                <span class="bi bi-file-pdf-fill" aria-hidden="true"></span> Exportar a PDF
+            </button>
         </div>
     </div>
 
@@ -82,6 +88,36 @@ else
     private bool cargandoProductos = true;
     private bool cargandoHistorial = false;
     private string? error;
+
+    private async Task GenerarPDF()
+    {
+        if (_historial == null || !_historial.Any() || _selectedProductId == 0)
+        {
+            await jsRuntime.InvokeVoidAsync("alert", "No hay historial para exportar para el producto seleccionado.");
+            return;
+        }
+
+        // Buscamos el nombre del producto seleccionado
+        var nombreProducto = _productos?.FirstOrDefault(p => p.IdProducto == _selectedProductId)?.Nombre ?? $"Producto_{_selectedProductId}";
+
+        try
+        {
+            // Preparamos los datos quitando información innecesaria para el PDF
+            var datosParaPdf = _historial.Select(h => new
+            {
+                fechaModificacionUtc = h.FechaModificacionUtc, // JS lo convertirá a local
+                valor = h.Valor
+            }).ToList();
+
+            // Llamamos a la función JavaScript
+            await jsRuntime.InvokeVoidAsync("generarPdfHistorialPrecios", nombreProducto, datosParaPdf);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al generar PDF: {ex.Message}");
+            await jsRuntime.InvokeVoidAsync("alert", $"Error al generar el PDF: {ex.Message}");
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {

@@ -22,22 +22,30 @@ else if (!string.IsNullOrEmpty(error))
 }
 else
 {
-    @* --- Sección de Filtros --- *@
-    <div class="row g-3 mb-3 p-3 border rounded bg-light">
+    @* --- Sección de Filtros (modificando la última fila) --- *@
+    <div class="row g-3 mb-3 p-3 border rounded bg-light align-items-end">
         <div class="col-md-3">
             <label for="filtroCliente" class="form-label">ID Cliente</label>
             <InputNumber id="filtroCliente" class="form-control" @bind-Value="filtroIdCliente" />
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
+       
             <label for="filtroDesde" class="form-label">Desde (Fecha Local)</label>
             <InputDate id="filtroDesde" class="form-control" @bind-Value="filtroDesde" />
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
+
             <label for="filtroHasta" class="form-label">Hasta (Fecha Local)</label>
             <InputDate id="filtroHasta" class="form-control" @bind-Value="filtroHasta" />
         </div>
-        <div class="col-md-1 d-flex align-items-end">
-            <button class="btn btn-primary w-100" @onclick="CargarVentasAsync">Filtrar</button>
+        <div class="col-md-3 d-flex gap-2">
+           
+            <button class="btn btn-primary flex-grow-1" @onclick="CargarVentasAsync">Filtrar</button>
+            @* --- BOTÓN NUEVO --- *@
+            <button class="btn btn-secondary flex-grow-1" @onclick="GenerarVentasPDF" disabled="@(cargando || ventas == null || !ventas.Any())">
+                <span class="bi bi-file-pdf-fill" aria-hidden="true"></span> PDF
+            </button>
+            @* --- FIN BOTÓN NUEVO --- *@
         </div>
     </div>
 
@@ -110,6 +118,45 @@ else
     private int? filtroIdCliente;
     private DateTime? filtroDesde;
     private DateTime? filtroHasta;
+
+    private async Task GenerarVentasPDF()
+    {
+        if (ventas == null || !ventas.Any())
+        {
+            await jsRuntime.InvokeVoidAsync("alert", "No hay ventas para exportar con los filtros actuales.");
+            return;
+        }
+
+        try
+        {
+            // Preparamos solo los datos necesarios para el PDF
+            var datosParaPdf = ventas.Select(v => new
+            {
+                idVenta = v.IdVenta,
+                clienteNombre = v.ClienteNombre,
+                idCliente = v.IdCliente,
+                fechaHoraVentaUtc = v.FechaHoraVentaUtc, // JS lo pasará a local
+                totalListado = v.TotalListado // Usamos el total que ya vino de la API
+            }).ToList();
+
+            // Pasamos los filtros actuales a JS para el subtítulo
+            DateTime? desdeUtc = filtroDesde.HasValue ? DateTime.SpecifyKind(filtroDesde.Value, DateTimeKind.Local).ToUniversalTime() : null;
+            DateTime? hastaUtc = filtroHasta.HasValue ? DateTime.SpecifyKind(filtroHasta.Value, DateTimeKind.Local).ToUniversalTime() : null;
+
+            // Llamamos a la nueva función JavaScript
+            await jsRuntime.InvokeVoidAsync("generarPdfVentas",
+                datosParaPdf,
+                filtroIdCliente, // Puede ser null
+                desdeUtc,        // Puede ser null
+                hastaUtc         // Puede ser null
+            );
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al generar PDF de ventas: {ex.Message}");
+            await jsRuntime.InvokeVoidAsync("alert", $"Error al generar el PDF de ventas: {ex.Message}");
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {

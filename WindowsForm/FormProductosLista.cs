@@ -8,7 +8,7 @@ public partial class FormProductosLista : Form
 {
     DataGridView grid = new() { Dock = DockStyle.Fill, ReadOnly = true, AutoGenerateColumns = true };
     BindingSource bs = new();
-    // Estandarizado con padding y altura para botones de 36px
+  
     FlowLayoutPanel pnl = new() { Dock = DockStyle.Top, Height = 56, Padding = new Padding(10, 10, 0, 0) };
     Button btnAgregar = new() { Text = "Agregar", Height = 36 };
     Button btnModificar = new() { Text = "Modificar", Height = 36 };
@@ -21,7 +21,7 @@ public partial class FormProductosLista : Form
         Text = "Productos";
         Width = 900; Height = 520; StartPosition = FormStartPosition.CenterParent;
 
-        // Aseguro ancho y margen de botones para consistencia
+        
         foreach (var btn in new[] { btnAgregar, btnModificar, btnEliminar, btnSalir })
         {
             btn.Width = 100;

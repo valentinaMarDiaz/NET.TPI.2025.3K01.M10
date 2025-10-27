@@ -7,7 +7,7 @@ namespace Application.Services
 {
     public class DescuentoService
     {
-        // Listado con filtro opcional por nombre de producto
+        
         public IEnumerable<DescuentoDTO> GetAll(string? producto = null)
         {
             using var ctx = new TPIContext();
@@ -35,7 +35,7 @@ namespace Application.Services
             return q.OrderBy(x => x.FechaCaducidadUtc).ToList();
         }
 
-        // *** NUEVO: obtener por Id (para Editar) ***
+        
         public DescuentoDTO? Get(int id)
         {
             using var ctx = new TPIContext();

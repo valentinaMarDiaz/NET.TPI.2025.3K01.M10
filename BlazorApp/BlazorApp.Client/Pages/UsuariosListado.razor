@@ -1,26 +1,26 @@
-﻿@page "/usuarios" // Ruta para esta página
-@using DTOs // Para usar UsuarioDTO
-@inject HttpClient Http // Para llamar a la API
-@inject NavigationManager Navigation // Para navegar a Editar (en el futuro)
-@inject IJSRuntime JSRuntime // Para usar confirm/alert en Eliminar
-@rendermode InteractiveWebAssembly // Asegura interactividad
+﻿@page "/usuarios" 
+@using DTOs 
+@inject HttpClient Http 
+@inject NavigationManager Navigation 
+@inject IJSRuntime JSRuntime 
+@rendermode InteractiveWebAssembly 
 
 <PageTitle>Lista de Usuarios</PageTitle>
 
 <h1>Lista de Usuarios</h1>
 
 <div class="mb-3">
-    @* Cambiamos el botón por un link que navega a la nueva página *@
+    
     <a href="/usuarios/agregar" class="btn btn-success">
         <span class="bi bi-person-plus-fill" aria-hidden="true"></span> Agregar Usuario (Registro)
     </a>
 </div>
 
-@if (usuarios == null) // Muestra "cargando"
+@if (usuarios == null) 
 {
     <p><em>Cargando usuarios...</em></p>
 }
-else // Muestra la tabla
+else 
 {
     <table class="table table-striped">
         <thead>
@@ -29,7 +29,7 @@ else // Muestra la tabla
                 <th>Nombre Completo</th>
                 <th>Email</th>
                 <th>Tipo</th>
-                <th>Teléfono/CUIL</th> @* Columna combinada *@
+                <th>Teléfono/CUIL</th> 
                 <th>Acciones</th>
             </tr>
         </thead>
@@ -41,7 +41,7 @@ else // Muestra la tabla
                     <td>@user.Apellido, @user.Nombre</td>
                     <td>@user.Email</td>
                     <td>@user.TipoUsuario</td>
-                    <td>@ObtenerDatoEspecifico(user)</td> @* Llama a un método helper *@
+                    <td>@ObtenerDatoEspecifico(user)</td>
                     <td>
                         <button class="btn btn-sm btn-warning me-1" @onclick="() => IrAEditar(user.Id)">
                             <span class="bi bi-pencil-fill" aria-hidden="true"></span> Editar
@@ -57,11 +57,11 @@ else // Muestra la tabla
 }
 
 @code {
-    private List<UsuarioDTO>? usuarios; // Variable para la lista
+    private List<UsuarioDTO>? usuarios; 
 
     protected override async Task OnInitializedAsync()
     {
-        await CargarUsuarios(); // Carga inicial
+        await CargarUsuarios();
     }
 
     private async Task CargarUsuarios()
@@ -70,7 +70,7 @@ else // Muestra la tabla
         StateHasChanged();
         try
         {
-            // Llama al endpoint GET /usuarios
+            
             usuarios = await Http.GetFromJsonAsync<List<UsuarioDTO>>("usuarios");
         }
         catch (Exception ex)
@@ -80,7 +80,7 @@ else // Muestra la tabla
         }
     }
 
-    // Método helper para mostrar Teléfono (Cliente) o CUIL (Vendedor)
+    
     private string ObtenerDatoEspecifico(UsuarioDTO user)
     {
         return user.TipoUsuario == "Cliente" ? user.Telefono ?? "N/A" : user.Cuil ?? "N/A";
@@ -88,17 +88,15 @@ else // Muestra la tabla
 
 
 
-    // Navega a la página de edición (la crearemos después) -> AHORA LA ACTIVAMOS
+    
     private void IrAEditar(int idUsuario)
     {
-        // --- INICIO CORRECCIÓN ---
-        // Quitamos el alert y descomentamos/agregamos la navegación
+       
         Navigation.NavigateTo($"/usuarios/editar/{idUsuario}");
-        // JSRuntime.InvokeVoidAsync("alert", $"Funcionalidad 'Editar Usuario' (ID: {idUsuario}) aún no implementada."); // <-- Eliminamos o comentamos esta línea
-        // --- FIN CORRECCIÓN ---
+       
     }
 
-    // Lógica para eliminar (similar a Categorías)
+    
     private async Task ConfirmarYEliminar(UsuarioDTO usuario)
     {
         bool confirmado = await JSRuntime.InvokeAsync<bool>("confirm", $"¿Estás seguro de eliminar al usuario '{usuario.Nombre} {usuario.Apellido}'?");
@@ -107,13 +105,13 @@ else // Muestra la tabla
         {
             try
             {
-                // Llama al endpoint DELETE /usuarios/{id}
+               
                 var response = await Http.DeleteAsync($"usuarios/{usuario.Id}");
 
                 if (response.IsSuccessStatusCode)
                 {
                     await JSRuntime.InvokeVoidAsync("alert", "Usuario eliminado con éxito.");
-                    await CargarUsuarios(); // Recarga la lista
+                    await CargarUsuarios(); 
                 }
                 else
                 {

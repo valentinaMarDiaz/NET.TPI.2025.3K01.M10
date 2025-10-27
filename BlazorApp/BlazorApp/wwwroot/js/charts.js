@@ -2,7 +2,7 @@
     if (!window.Chart) return;
     const ctx = document.getElementById(canvasId).getContext('2d');
 
-    if (ctx._chartInstance) { ctx._chartInstance.destroy(); } // limpia si ya había uno
+    if (ctx._chartInstance) { ctx._chartInstance.destroy(); } 
 
     const chart = new Chart(ctx, {
         type: 'bar',

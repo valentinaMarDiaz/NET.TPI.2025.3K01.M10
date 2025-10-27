@@ -18,12 +18,12 @@
             </NavLink>
         </div>
 
-        @* ELIMINAMOS EL ENLACE A 'COUNTER' DE AQUÍ *@
+       
 
-        @* Solo muestra estos links si el usuario ESTÁ logueado *@
+        
         @if (authStateProvider.CurrentUser != null)
         {
-            @* ELIMINAMOS EL ENLACE A 'WEATHER' DE AQUÍ *@
+            
 
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="productos">
@@ -31,13 +31,13 @@
                 </NavLink>
             </div>
 
-            @* MUESTRA "CARRITO" SOLO SI ES CLIENTE *@
+            
             @if (authStateProvider.CurrentUser.TipoUsuario == "Cliente")
             {
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="carrito">
                         <span class="bi bi-cart-fill position-relative" aria-hidden="true">
-                            @* El badge (numerito) *@
+                           
                             @if (CarritoItemCount > 0)
                             {
                                 <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
@@ -55,7 +55,7 @@
                 </li>
             }
 
-            @* MUESTRA ESTO SOLO SI ES VENDEDOR *@
+            
             @if (authStateProvider.CurrentUser.TipoUsuario == "Vendedor")
             {
                 <div class="nav-item px-3">
@@ -95,13 +95,13 @@
     [Parameter]
     public int CarritoItemCount { get; set; }
 
-    // Necesitamos suscribirnos para que el menú se actualice cuando cambie el login
+    
     protected override void OnInitialized()
     {
         authStateProvider.OnChange += StateHasChanged;
     }
 
-    // Y desuscribirnos
+  
     public void Dispose()
     {
         authStateProvider.OnChange -= StateHasChanged;

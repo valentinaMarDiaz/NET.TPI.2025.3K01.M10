@@ -20,7 +20,7 @@ public partial class FormCantidad : Form
 
     public FormCantidad()
     {
-        InitializeComponent(); // stub
+        InitializeComponent(); 
 
         Text = "Cantidad";
         Width = 340;
@@ -55,6 +55,6 @@ public partial class FormCantidad : Form
         };
     }
 
-    // === Stub para no depender del Designer ===
+    
     private void InitializeComponent() { }
 }

@@ -1,76 +1,75 @@
 ﻿function generarPdfHistorialPrecios(nombreProducto, historialData) {
-    // Asegúrate de que jsPDF esté cargado
     if (typeof jspdf === 'undefined') {
         console.error("jsPDF no está cargado.");
         alert("Error: La librería PDF no se pudo cargar.");
         return;
     }
-    const { jsPDF } = jspdf; // Extraer el constructor
+    const { jsPDF } = jspdf; 
 
-    // Crear instancia del PDF
+   
     const doc = new jsPDF();
 
-    // Título del reporte
+  
     doc.setFontSize(18);
     doc.text(`Historial de Precios - ${nombreProducto}`, 14, 22);
 
-    // Preparar datos para la tabla
+    
     const head = [['Fecha y Hora (Local)', 'Precio Registrado']];
     const body = historialData.map(h => [
-        new Date(h.fechaModificacionUtc).toLocaleString(), // Formatear fecha a local
-        // Formatear como moneda ARS (Peso Argentino)
+        new Date(h.fechaModificacionUtc).toLocaleString(), 
+        
         parseFloat(h.valor).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })
     ]);
 
-    // Agregar la tabla al documento usando autoTable
+    
     if (doc.autoTable) {
         doc.autoTable({
             head: head,
             body: body,
-            startY: 30, // Posición vertical donde empieza la tabla
+            startY: 30, 
             headStyles: {
-                fillColor: [41, 128, 185], // Mantenemos el color azul del encabezado
-                // Quitamos la alineación específica de aquí
+                fillColor: [41, 128, 185], 
+                
             },
             styles: { fontSize: 10 },
-            // ---------- INICIO CORRECCIÓN ----------
+           
             columnStyles: {
-                0: { cellWidth: 'auto' }, // Columna Fecha (índice 0) - Alineación por defecto (izquierda)
-                1: { // Columna Precio (índice 1)
+                0: { cellWidth: 'auto' }, 
+                1: { 
                     cellWidth: 'auto',
-                    halign: 'right' // Aplicar alineación derecha a TODA la columna (header y body)
+                    halign: 'right' 
                 }
             }
-            // ---------- FIN CORRECCIÓN ----------
+           
         });
     } else {
-        // Fallback si autoTable no está disponible
+        
         console.warn("jsPDF-AutoTable no está cargado. Mostrando datos como texto simple.");
         let y = 30;
         doc.setFontSize(12);
-        // Encabezado (intentar alinear manualmente, aproximado)
-        doc.text(head[0][0], 14, y); // Fecha a la izquierda
+        
+        doc.text(head[0][0], 14, y); 
         let precioHeaderWidth = doc.getTextWidth(head[0][1]);
         let pageWidth = doc.internal.pageSize.getWidth();
-        doc.text(head[0][1], pageWidth - 14 - precioHeaderWidth, y); // Precio a la derecha
+        doc.text(head[0][1], pageWidth - 14 - precioHeaderWidth, y); 
         y += 7;
 
-        // Cuerpo (intentar alinear manualmente, aproximado)
+        
         body.forEach(row => {
-            doc.text(row[0], 14, y); // Fecha a la izquierda
+            doc.text(row[0], 14, y); 
             let precioWidth = doc.getTextWidth(row[1]);
-            doc.text(row[1], pageWidth - 14 - precioWidth, y); // Precio a la derecha
+            doc.text(row[1], pageWidth - 14 - precioWidth, y); 
             y += 7;
         });
     }
 
 
-    // Guardar el PDF
+
     doc.save(`HistorialPrecios_${nombreProducto.replace(/ /g, '_')}.pdf`);
 }
 
 function generarPdfVentas(ventasData, filtroClienteId, filtroDesde, filtroHasta) {
-    // Asegúrate de que jsPDF y autoTable estén cargados
+    
     if (typeof jspdf === 'undefined' || typeof jspdf.jsPDF === 'undefined') {
         console.error("jsPDF no está cargado.");
         alert("Error: La librería PDF no se pudo cargar.");
@@ -84,16 +83,15 @@ function generarPdfVentas(ventasData, filtroClienteId, filtroDesde, filtroHasta)
         return;
     }
 
-    // Crear instancia del PDF
     const doc = new jsPDF({
-        orientation: "landscape" // Orientación horizontal para más espacio
+        orientation: "landscape" 
     });
 
-    // Título del reporte
+   
     doc.setFontSize(18);
     doc.text("Reporte de Ventas", 14, 22);
 
-    // Subtítulo con filtros aplicados (si existen)
+    
     doc.setFontSize(10);
     let filtroTexto = "Filtros aplicados: ";
     let filtrosAplicados = false;
@@ -115,37 +113,37 @@ function generarPdfVentas(ventasData, filtroClienteId, filtroDesde, filtroHasta)
     doc.text(filtroTexto, 14, 30);
 
 
-    // Preparar datos para la tabla
+    
     const head = [['ID Venta', 'Cliente', 'ID Cliente', 'Fecha (Local)', 'Total']];
     const body = ventasData.map(v => [
         v.idVenta,
         v.clienteNombre,
         v.idCliente,
-        new Date(v.fechaHoraVentaUtc).toLocaleString(), // Formatear fecha a local
-        // Formatear como moneda ARS (Peso Argentino) - Usamos totalListado
+        new Date(v.fechaHoraVentaUtc).toLocaleString(), 
+        
         parseFloat(v.totalListado).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })
     ]);
 
-    // Agregar la tabla al documento usando autoTable
+    
     doc.autoTable({
         head: head,
         body: body,
-        startY: 38, // Posición vertical donde empieza la tabla (debajo de los títulos)
+        startY: 38, 
         headStyles: {
-            fillColor: [41, 128, 185], // Color azul para encabezado
-            halign: 'center' // Centrar encabezados
+            fillColor: [41, 128, 185],
+            halign: 'center' 
         },
-        styles: { fontSize: 9 }, // Tamaño de fuente más pequeño para que quepa mejor
+        styles: { fontSize: 9 },
         columnStyles: {
-            0: { halign: 'center' }, // ID Venta centrado
-            1: { halign: 'left' },   // Cliente a la izquierda
-            2: { halign: 'center' }, // ID Cliente centrado
-            3: { halign: 'center' }, // Fecha centrado
-            4: { halign: 'right' }   // Total a la derecha
+            0: { halign: 'center' }, 
+            1: { halign: 'left' },   
+            2: { halign: 'center' },
+            3: { halign: 'center' }, 
+            4: { halign: 'right' }   
         }
     });
 
-    // Guardar el PDF
+    
     let nombreArchivo = "ReporteVentas";
     if (filtroDesde) nombreArchivo += `_Desde_${new Date(filtroDesde).toLocaleDateString().replace(/\//g, '-')}`;
     if (filtroHasta) nombreArchivo += `_Hasta_${new Date(filtroHasta).toLocaleDateString().replace(/\//g, '-')}`;

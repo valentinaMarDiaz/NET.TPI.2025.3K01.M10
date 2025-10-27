@@ -23,15 +23,15 @@ public class UsuarioService
             ? new Cliente(dto.Nombre, dto.Apellido, dto.Email, "DUMMY", dto.Telefono ?? "", dto.Direccion ?? "")
             : new Vendedor(dto.Nombre, dto.Apellido, dto.Email, "DUMMY", dto.Cuil ?? "");
 
-        // setear Id para que el repo actualice el correcto
+        
         typeof(Usuario).GetProperty("Id")!.SetValue(u, dto.Id);
 
-        // comunes
+       
         u.SetNombre(dto.Nombre);
         u.SetApellido(dto.Apellido);
         u.SetEmail(dto.Email);
 
-        // específicos
+       
         if (u is Cliente c)
         {
             if (string.IsNullOrWhiteSpace(dto.Telefono) || !dto.Telefono.All(char.IsDigit))

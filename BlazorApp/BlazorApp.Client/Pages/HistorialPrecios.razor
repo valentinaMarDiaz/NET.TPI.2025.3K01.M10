@@ -47,7 +47,7 @@ else
         </div>
     </div>
 
-    @* --- Tabla de Historial --- *@
+   
     @if (cargandoHistorial)
     {
         <p><em>Cargando historial...</em></p>
@@ -97,19 +97,19 @@ else
             return;
         }
 
-        // Buscamos el nombre del producto seleccionado
+       
         var nombreProducto = _productos?.FirstOrDefault(p => p.IdProducto == _selectedProductId)?.Nombre ?? $"Producto_{_selectedProductId}";
 
         try
         {
-            // Preparamos los datos quitando información innecesaria para el PDF
+           
             var datosParaPdf = _historial.Select(h => new
             {
-                fechaModificacionUtc = h.FechaModificacionUtc, // JS lo convertirá a local
+                fechaModificacionUtc = h.FechaModificacionUtc,
                 valor = h.Valor
             }).ToList();
 
-            // Llamamos a la función JavaScript
+            
             await jsRuntime.InvokeVoidAsync("generarPdfHistorialPrecios", nombreProducto, datosParaPdf);
         }
         catch (Exception ex)
@@ -121,14 +121,14 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        // 1. Proteger la ruta
+        
         if (authStateProvider.CurrentUser == null || authStateProvider.CurrentUser.TipoUsuario != "Vendedor")
         {
-            navigationManager.NavigateTo("/"); // Al Login
+            navigationManager.NavigateTo("/"); 
             return;
         }
 
-        // 2. Cargar la lista de productos para el dropdown
+        
         cargandoProductos = true;
         try
         {
@@ -146,13 +146,13 @@ else
 
     private async Task OnProductoSeleccionado(ChangeEventArgs e)
     {
-        // 1. Obtener el ID seleccionado del dropdown
+       
         if (!int.TryParse(e.Value?.ToString(), out _selectedProductId))
         {
             _selectedProductId = 0;
         }
 
-        // 2. Si es "Elija un producto" (ID 0), limpiar la tabla
+       
         if (_selectedProductId == 0)
         {
             _historial = null;
@@ -160,10 +160,10 @@ else
             return;
         }
 
-        // 3. Buscar el historial para el ID seleccionado
+     
         cargandoHistorial = true;
         _historial = null;
-        await InvokeAsync(StateHasChanged); // Mostrar "Cargando historial..."
+        await InvokeAsync(StateHasChanged);
 
         try
         {

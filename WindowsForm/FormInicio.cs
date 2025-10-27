@@ -85,7 +85,7 @@ public partial class FormInicio : Form
         };
     }
 
-    // Estilo común
+
     private void EstiloBotonAzul(Button b)
     {
         b.FlatStyle = FlatStyle.Flat;
@@ -105,6 +105,6 @@ public partial class FormInicio : Form
     [DllImport("Gdi32.dll", EntryPoint = "CreateRoundRectRgn")]
     private static extern IntPtr CreateRoundRectRgn(int nLeftRect, int nTopRect, int nRightRect, int nBottomRect, int nWidthEllipse, int nHeightEllipse);
 
-    // Stub para no depender del Designer
+  
     private void InitializeComponent() { }
 }

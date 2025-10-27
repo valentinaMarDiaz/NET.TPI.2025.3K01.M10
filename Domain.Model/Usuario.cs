@@ -2,7 +2,7 @@
 
 public abstract class Usuario
 {
-    public int Id { get; protected set; }                    // identity
+    public int Id { get; protected set; }                   
     public string Nombre { get; protected set; } = "";
     public string Apellido { get; protected set; } = "";
     public string Email { get; protected set; } = "";

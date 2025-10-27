@@ -14,16 +14,14 @@ namespace API.Clients
         {
             client = new HttpClient
             {
-                BaseAddress = new Uri("https://localhost:7206/") // WebAPI HTTPS
+                BaseAddress = new Uri("https://localhost:7206/") 
             };
             client.DefaultRequestHeaders.Accept.Clear();
             client.DefaultRequestHeaders.Accept.Add(
                 new MediaTypeWithQualityHeaderValue("application/json"));
         }
 
-        // =========================
-        // ADMIN
-        // =========================
+        //Vendedor
         public static async Task<IReadOnlyList<DescuentoDTO>> GetAllAsync(string? producto = null)
         {
             var url = "descuentos";
@@ -53,7 +51,7 @@ namespace API.Clients
             return (await r.Content.ReadFromJsonAsync<DescuentoDTO>())!;
         }
 
-        // ← QUEDA SOLO ESTE UpdateAsync
+        
         public static async Task UpdateAsync(DescuentoCUDTO dto)
         {
             var r = await client.PutAsJsonAsync("descuentos", dto);
@@ -68,12 +66,12 @@ namespace API.Clients
         {
             try
             {
-                // Tu API devuelve { "error": "mensaje" } cuando algo falla
+                
                 var obj = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(raw);
                 if (obj != null && obj.TryGetValue("error", out var e) && !string.IsNullOrWhiteSpace(e))
                     return e;
             }
-            catch { /* ignore */ }
+            catch { /* ignorar */ }
             return string.IsNullOrWhiteSpace(raw) ? "Error desconocido de API." : raw;
         }
 
@@ -83,9 +81,7 @@ namespace API.Clients
             r.EnsureSuccessStatusCode();
         }
 
-        // =========================
-        // CLIENTE
-        // =========================
+        //Cliente
         public static async Task<IReadOnlyList<DescuentoDTO>> GetVigentesAsync(string? texto = null)
         {
             var url = "descuentos/vigentes";

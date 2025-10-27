@@ -1,4 +1,4 @@
-﻿@page "/usuarios/editar/{IdUsuario:int}" // Ruta con parámetro ID
+﻿@page "/usuarios/editar/{IdUsuario:int}"
 @using DTOs
 @inject HttpClient Http
 @inject NavigationManager Navigation
@@ -16,11 +16,11 @@
 else if (usuarioParaEditar != null)
 {
     <EditForm Model="usuarioParaEditar" OnValidSubmit="HandleValidSubmit" FormName="editarUsuarioForm">
-        <DataAnnotationsValidator /> @* Activa validaciones si las pones en UsuarioDTO *@
+        <DataAnnotationsValidator />
 
         <div class="mb-3">
             <label class="form-label">Tipo de Usuario:</label>
-            <InputText class="form-control" Value="@usuarioParaEditar.TipoUsuario" disabled /> @* El tipo no se puede cambiar *@
+            <InputText class="form-control" Value="@usuarioParaEditar.TipoUsuario" disabled /> 
         </div>
 
         <div class="mb-3">
@@ -41,7 +41,7 @@ else if (usuarioParaEditar != null)
             <ValidationMessage For="() => usuarioParaEditar.Email" />
         </div>
 
-        @* --- Campos específicos por Tipo de Usuario --- *@
+        
         @if (usuarioParaEditar.TipoUsuario == "Cliente")
         {
             <div class="mb-3">
@@ -64,10 +64,10 @@ else if (usuarioParaEditar != null)
             </div>
             <div class="mb-3">
                 <label class="form-label">Legajo:</label>
-                <InputText class="form-control" Value="@usuarioParaEditar.Legajo?.ToString()" disabled /> @* Legajo no editable *@
+                <InputText class="form-control" Value="@usuarioParaEditar.Legajo?.ToString()" disabled />
             </div>
         }
-        @* --- Fin Campos específicos --- *@
+        
 
 
         <button type="submit" class="btn btn-primary">Guardar Cambios</button>
@@ -83,23 +83,23 @@ else
 
 
 @code {
-    [Parameter] // Recibe el ID desde la URL
+    [Parameter] 
     public int IdUsuario { get; set; }
 
-    // Objeto para los datos del usuario a editar
+    
     private UsuarioDTO? usuarioParaEditar;
 
-    private bool cargando = true; // Controla mensaje inicial
-    private string? errorApi; // Para mostrar errores de la API
+    private bool cargando = true; 
+    private string? errorApi; 
 
-    // Carga el usuario a editar al iniciar
+
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            // Llama al endpoint GET /usuarios/{id}
+           
             usuarioParaEditar = await Http.GetFromJsonAsync<UsuarioDTO>($"usuarios/{IdUsuario}");
-            // Aseguramos que los campos opcionales no sean null para evitar problemas con @bind-Value
+            
             if (usuarioParaEditar != null)
             {
                 usuarioParaEditar.Telefono ??= "";
@@ -119,24 +119,21 @@ else
         }
     }
 
-    // Se ejecuta al enviar el formulario válido
+    
     private async Task HandleValidSubmit()
     {
         errorApi = null;
         if (usuarioParaEditar == null) return;
 
-        // Aquí podrías agregar validaciones específicas antes de enviar,
-        // ej: verificar formato de email, teléfono solo números, etc.
-        // if (!Validaciones.EsEmailValido(usuarioParaEditar.Email)) { ... }
-
+       
         try
         {
-            // Llama al endpoint PUT /usuarios de tu API
+           
             var response = await Http.PutAsJsonAsync("usuarios", usuarioParaEditar);
 
             if (response.IsSuccessStatusCode)
             {
-                Navigation.NavigateTo("/usuarios"); // Vuelve al listado si se guardó bien
+                Navigation.NavigateTo("/usuarios"); 
             }
             else
             {
@@ -152,7 +149,7 @@ else
         }
     }
 
-    // Método para el botón "Cancelar" o si falla la carga
+   
     private void VolverAUsuarios()
     {
         Navigation.NavigateTo("/usuarios");

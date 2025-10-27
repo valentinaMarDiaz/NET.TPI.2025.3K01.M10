@@ -1,4 +1,4 @@
-﻿@* --- 1. Directivas Obligatorias ARRIBA --- *@
+﻿
 @page "/usuarios/agregar"
 @using DTOs
 @using System.ComponentModel.DataAnnotations
@@ -8,11 +8,11 @@
 @inject IJSRuntime JSRuntime
 @rendermode InteractiveWebAssembly
 
-@* --- 2. Título --- *@
+
 <PageTitle>Agregar Usuario (Registro)</PageTitle>
 <h3>Registrar Nuevo Usuario</h3>
 
-@* --- 3. HTML del Formulario --- *@
+
 <EditForm Model="nuevoUsuario" OnValidSubmit="HandleValidSubmit" FormName="agregarUsuarioForm">
     <DataAnnotationsValidator />
 
@@ -53,7 +53,7 @@
         <ValidationMessage For="() => nuevoUsuario.Password" />
     </div>
 
-    @* --- Campos condicionales --- *@
+
     @if (nuevoUsuario.TipoUsuarioSeleccionado == "Cliente")
     {
         <div class="mb-3">
@@ -79,13 +79,13 @@
     <button type="submit" class="btn btn-primary">Registrar Usuario</button>
     <button type="button" class="btn btn-secondary" @onclick="VolverAUsuarios">Cancelar</button>
 
-</EditForm> @* <-- Asegúrate que esta etiqueta de cierre esté presente *@
+</EditForm> 
 
 
-@* --- 4. INICIO DEL BLOQUE @code --- *@
+
 @code {
 
-    // La clase interna para el modelo del formulario
+    
     public class RegistroFormModel
     {
         public string TipoUsuarioSeleccionado { get; set; } = "Cliente";
@@ -98,7 +98,6 @@
         public string Cuil { get; set; } = "";
     }
 
-    // Propiedades y métodos del componente Blazor
     private RegistroFormModel nuevoUsuario = new RegistroFormModel();
     private string? errorApi;
 
@@ -119,7 +118,7 @@
                  };
                 response = await Http.PostAsJsonAsync("auth/register/cliente", dtoCliente);
             }
-            else // Vendedor
+            else 
             {
                  if (string.IsNullOrWhiteSpace(nuevoUsuario.Cuil))
                  { await JSRuntime.InvokeVoidAsync("alert", "Para vendedor, completá CUIL."); return; }

@@ -87,7 +87,7 @@ else if (productos != null)
     private bool cargando = true;
     private string? error;
 
-    // Recibimos el MainLayout "padre" para poder llamar a su método
+    
     [CascadingParameter]
     public MainLayout? Layout { get; set; }
 
@@ -105,7 +105,7 @@ else if (productos != null)
 
         try
         {
-            // Llamada estática, usando el nombre de la clase
+            
             productos = (await ProductoApiClient.GetAllAsync()).ToList();
         }
         catch (Exception ex)
@@ -119,20 +119,20 @@ else if (productos != null)
         }
     }
 
-    // Lógica para agregar al carrito
+   
     private async Task AgregarAlCarrito(ProductoDTO producto)
     {
-        // Usamos la INSTANCIA inyectada (variable AuthStateProvider)
+        
         if (AuthStateProvider.CurrentUser == null || AuthStateProvider.CurrentUser.TipoUsuario != "Cliente")
         {
-            // Usamos la INSTANCIA inyectada (variable JSRuntime)
+           
             await JSRuntime.InvokeVoidAsync("alert", "Debe iniciar sesión como cliente para comprar.");
-            // Usamos la INSTANCIA inyectada (variable Navigation)
+            
             Navigation.NavigateTo("/login");
             return;
         }
 
-        // Usamos la INSTANCIA inyectada (variable JSRuntime)
+        
         var cantidadInput = await JSRuntime.InvokeAsync<string>("prompt", $"Ingrese la cantidad para '{producto.Nombre}' (Stock: {producto.Stock}):", "1");
 
         if (int.TryParse(cantidadInput, out int cantidad) && cantidad > 0)
@@ -145,12 +145,11 @@ else if (productos != null)
 
             try
             {
-                // Llamada estática, usando el nombre de la clase
-                // Usamos la INSTANCIA inyectada (variable AuthStateProvider)
+                
                 await CarritoApiClient.AddAsync(AuthStateProvider.CurrentUser.Id, producto.IdProducto, cantidad);
                 await JSRuntime.InvokeVoidAsync("alert", $"{cantidad} x '{producto.Nombre}' agregado(s) al carrito.");
 
-                // Aquí llamamos al método del MainLayout para actualizar el badge
+                
                 if (Layout is not null)
                 {
                     await Layout.ActualizarBadgeCarritoAsync();

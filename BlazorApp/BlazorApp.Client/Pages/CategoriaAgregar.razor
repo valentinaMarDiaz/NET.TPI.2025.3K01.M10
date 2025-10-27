@@ -30,13 +30,13 @@
 </EditForm>
 
 @code {
-    // Objeto para los datos del formulario
+    
     private CategoriaDTO nuevaCategoria = new CategoriaDTO();
 
-    // Método que se ejecuta al guardar
+    
     private async Task HandleValidSubmit()
     {
-        // Validación extra simple (aunque podríamos usar DataAnnotations en CategoriaDTO)
+        
         if (string.IsNullOrWhiteSpace(nuevaCategoria.Nombre))
         {
             await JSRuntime.InvokeVoidAsync("alert", "El nombre es obligatorio.");
@@ -45,12 +45,12 @@
 
         try
         {
-            // Llama al endpoint POST /categorias
+            
             var response = await Http.PostAsJsonAsync("categorias", nuevaCategoria);
 
             if (response.IsSuccessStatusCode)
             {
-                Navigation.NavigateTo("/categorias"); // Vuelve a la lista
+                Navigation.NavigateTo("/categorias"); 
             }
             else
             {
@@ -64,7 +64,7 @@
         }
     }
 
-    // Método para el botón "Cancelar"
+    
     private void VolverACategorias()
     {
         Navigation.NavigateTo("/categorias");

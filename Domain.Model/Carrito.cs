@@ -7,7 +7,7 @@ public class Carrito
     public string Estado { get; private set; } = "Abierto";
     public DateTime FechaCreacionUtc { get; private set; } = DateTime.UtcNow;
 
-    // navegación
+  
     public List<CarritoItem> Items { get; private set; } = new();
 
     public Carrito(int idCliente)

@@ -10,7 +10,7 @@ public static class ProductoApiClient
 
     static ProductoApiClient()
     {
-        client = new HttpClient { BaseAddress = new Uri("https://localhost:7206/") }; // tu puerto
+        client = new HttpClient { BaseAddress = new Uri("https://localhost:7206/") }; 
         client.DefaultRequestHeaders.Accept.Clear();
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
     }

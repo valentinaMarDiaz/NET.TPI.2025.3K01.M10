@@ -3,7 +3,7 @@
 public class Vendedor : Usuario
 {
     public string Cuil { get; private set; } = "";
-    public int Legajo { get; private set; }   // ahora se asigna con método
+    public int Legajo { get; private set; }   
 
     public Vendedor() { }
 

@@ -2,8 +2,8 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using API.Clients;   // Cliente HTTP hacia la WebAPI
-using DTOs;         // CategoriaDTO
+using API.Clients;   
+using DTOs;         
 
 namespace WindowsForm;
 
@@ -13,11 +13,11 @@ public partial class FormCategorias : Form
     {
         InitializeComponent();
 
-        // Eventos
+     
         this.Load += async (_, __) => await CargarAsync();
         btnAgregar.Click += async (_, __) => await AgregarAsync();
 
-        // Enter para agregar rápido
+       
         txtNombre.KeyDown += async (s, e) =>
         {
             if (e.KeyCode == Keys.Enter)
@@ -34,8 +34,8 @@ public partial class FormCategorias : Form
         try
         {
             var categorias = (await CategoriaApiClient.GetAllAsync()).ToList();
-            bs.DataSource = categorias;              // 'bs' está declarado en el Designer
-            grid.AutoGenerateColumns = true;         // por si no lo dejaste en el Designer
+            bs.DataSource = categorias;              
+            grid.AutoGenerateColumns = true;         
         }
         catch (Exception ex)
         {

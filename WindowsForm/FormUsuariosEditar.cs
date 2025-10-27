@@ -11,7 +11,7 @@ public partial class FormUsuariosEditar : Form
 {
     readonly UsuarioDTO _dto;
 
-    // Panel principal para centrar y ordenar todos los elementos
+   
     FlowLayoutPanel pnlMain = new() { Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, AutoScroll = true, Padding = new Padding(20), BackColor = Color.White };
 
     const int CTRL_WIDTH = 300;
@@ -20,16 +20,16 @@ public partial class FormUsuariosEditar : Form
     TextBox txtApellido = new() { PlaceholderText = "Apellido", Height = 25, Width = CTRL_WIDTH };
     TextBox txtEmail = new() { PlaceholderText = "Email", Height = 25, Width = CTRL_WIDTH };
 
-    // Cliente
+   
     TextBox txtTel = new() { PlaceholderText = "Teléfono (solo dígitos)", Visible = false, Height = 25, Width = CTRL_WIDTH };
     TextBox txtDir = new() { PlaceholderText = "Dirección", Visible = false, Multiline = true, Height = 70, Width = CTRL_WIDTH };
 
-    // Vendedor
+    
     TextBox txtCuil = new() { PlaceholderText = "CUIL (solo dígitos)", Visible = false, Height = 25, Width = CTRL_WIDTH };
 
     Label lblTipo = new() { Height = 25, TextAlign = System.Drawing.ContentAlignment.MiddleLeft, Margin = new Padding(0, 5, 0, 5), Width = CTRL_WIDTH };
 
-    // Botones con ANCHO FIJO y ALTURA ESTANDAR
+    
     Button btnContinuar = new() { Text = "Continuar", Height = 40, Width = CTRL_WIDTH };
     Button btnVolver = new() { Text = "Volver", Height = 40, Width = CTRL_WIDTH };
     Button btnCancelar = new() { Text = "Cancelar", Height = 40, Width = CTRL_WIDTH };
@@ -45,23 +45,23 @@ public partial class FormUsuariosEditar : Form
 
         Controls.Add(pnlMain);
 
-        // 1. Agregar los CONTROLES DE ENTRADA (los campos)
+        
         pnlMain.Controls.AddRange(new Control[] {
             lblTipo, txtNombre, txtApellido, txtEmail, txtTel, txtDir, txtCuil
         });
 
-        // 2. Agregar los BOTONES
+        
         pnlMain.Controls.AddRange(new Control[] { btnContinuar, btnVolver, btnCancelar });
 
-        // 3. Aplicar ESTILO y CENTRADO
+   
         ConfigurarEstiloBoton(btnContinuar);
         ConfigurarEstiloBoton(btnVolver);
         ConfigurarEstiloBoton(btnCancelar);
 
-        // Lógica de centrado (como en FormMenu)
+        
         pnlMain.Layout += (_, __) =>
         {
-            // Centra horizontalmente todos los controles
+            
             foreach (Control ctrl in pnlMain.Controls)
             {
                 ctrl.Margin = new Padding((pnlMain.ClientSize.Width - ctrl.Width) / 2, 6, 0, 6);
@@ -128,7 +128,7 @@ public partial class FormUsuariosEditar : Form
         boton.Font = new Font("Segoe UI", 11, FontStyle.Bold);
         boton.Region = System.Drawing.Region.FromHrgn(CreateRoundRectRgn(0, 0, boton.Width, boton.Height, 15, 15));
 
-        // Hover
+      
         boton.MouseEnter += (_, __) => boton.BackColor = Color.FromArgb(41, 128, 185);
         boton.MouseLeave += (_, __) => boton.BackColor = Color.FromArgb(52, 152, 219);
     }

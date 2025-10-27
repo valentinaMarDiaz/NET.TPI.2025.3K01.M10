@@ -8,7 +8,7 @@ public class PrecioProductoDTO
     public decimal Valor { get; set; }
     public DateTime FechaModificacionUtc { get; set; }
 
-    // helper de UI (edad)
+    
     public string Edad => GetEdad();
 
     private string GetEdad()

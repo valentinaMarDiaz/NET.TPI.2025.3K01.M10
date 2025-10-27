@@ -51,12 +51,12 @@
 
     private async Task Reload()
     {
-        // Llamamos a tu WebAPI
+      
         var api = $"https://localhost:7206/reportes/ventas-por-mes?anio={anio}";
         var resp = await Http.GetFromJsonAsync<Response>(api);
         rows = resp?.data ?? new();
 
-        // Dibuja Chart
+     
         var labels = Enumerable.Range(1, 12).Select(NombreMes).ToArray();
         var data = rows.OrderBy(x => x.Mes).Select(x => x.Total).ToArray();
         await JS.InvokeVoidAsync("renderBarChart", "ventasMesChart", labels, data, $"Ventas {anio}");

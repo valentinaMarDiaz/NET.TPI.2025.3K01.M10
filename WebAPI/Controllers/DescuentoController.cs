@@ -10,12 +10,12 @@ public class DescuentosController : ControllerBase
 {
     private readonly DescuentoService _svc = new();
 
-    // GET /descuentos?producto=...
+   
     [HttpGet]
     public ActionResult<IEnumerable<DescuentoDTO>> GetAll([FromQuery] string? producto)
         => Ok(_svc.GetAll(producto));
 
-    // GET /descuentos/{id}
+ 
     [HttpGet("{id:int}")]
     public ActionResult<DescuentoDTO> GetById(int id)
     {
@@ -24,7 +24,6 @@ public class DescuentosController : ControllerBase
         return Ok(dto);
     }
 
-    // POST /descuentos
     [HttpPost]
     public ActionResult<DescuentoDTO> Create([FromBody] DescuentoCUDTO cu)
     {
@@ -42,7 +41,7 @@ public class DescuentosController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = creado.IdDescuento }, creado);
     }
 
-    // PUT /descuentos
+  
     [HttpPut]
     public IActionResult Update([FromBody] DescuentoCUDTO cu)
     {
@@ -62,7 +61,7 @@ public class DescuentosController : ControllerBase
         return NoContent();
     }
 
-    // DELETE /descuentos/{id}
+    
     [HttpDelete("{id:int}")]
     public IActionResult Delete(int id)
     {
@@ -71,12 +70,12 @@ public class DescuentosController : ControllerBase
         return NoContent();
     }
 
-    // GET /descuentos/vigentes?texto=...
+    
     [HttpGet("vigentes")]
     public ActionResult<IEnumerable<DescuentoDTO>> GetVigentes([FromQuery] string? texto)
         => Ok(_svc.GetVigentes(texto, DateTime.UtcNow));
 
-    // GET /descuentos/validar?codigo=XYZ
+    
     [HttpGet("validar")]
     public ActionResult<DescuentoDTO> Validar([FromQuery] string codigo)
     {

@@ -48,7 +48,7 @@ else
 
         <div class="mb-3">
             <label class="form-label">Código *</label>
-            <!-- usar elemento HTML + oninput -->
+            
             <input class="form-control"
                    @bind="model.Codigo"
                    @bind:event="oninput" />
@@ -57,7 +57,7 @@ else
 
         <div class="mb-3">
             <label class="form-label">Descripción *</label>
-            <!-- idem: elemento HTML + oninput -->
+            
             <input class="form-control"
                    @bind="model.Descripcion"
                    @bind:event="oninput" />
@@ -119,11 +119,11 @@ else
     {
         error = null;
 
-        // Normalizo
+     
         model.Codigo = (model.Codigo ?? "").Trim().ToUpperInvariant();
         model.Descripcion = (model.Descripcion ?? "").Trim();
 
-        // Validaciones básicas
+   
         if (model.IdProducto <= 0) { error = "Seleccione un producto."; return; }
         if (string.IsNullOrWhiteSpace(model.Codigo)) { error = "El código es obligatorio."; return; }
         if (model.Codigo.Length is < 3 or > 24) { error = "El código debe tener entre 3 y 24 caracteres."; return; }
@@ -131,7 +131,7 @@ else
         if (model.Descripcion.Length is < 1 or > 200) { error = "La descripción debe tener entre 1 y 200 caracteres."; return; }
         if (model.Porcentaje <= 0 || model.Porcentaje > 100) { error = "El porcentaje debe ser > 0 y ≤ 100."; return; }
 
-        // Fechas a UTC
+ 
         var inicioUtc = DateTime.SpecifyKind(inicioLocal, DateTimeKind.Local).ToUniversalTime();
         var caducaUtc = DateTime.SpecifyKind(caducaLocal, DateTimeKind.Local).ToUniversalTime();
         if (caducaUtc < inicioUtc) { error = "La fecha de caducidad no puede ser menor a la de inicio."; return; }
@@ -147,7 +147,7 @@ else
         }
         catch (Exception ex)
         {
-            error = ex.Message; // muestra el mensaje de la API (p.ej., código duplicado)
+            error = ex.Message; 
         }
     }
 

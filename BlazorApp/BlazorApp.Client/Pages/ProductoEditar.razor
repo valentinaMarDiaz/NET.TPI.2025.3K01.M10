@@ -1,4 +1,4 @@
-﻿@page "/productos/editar/{IdProducto:int}" // Ruta con parámetro ID
+﻿@page "/productos/editar/{IdProducto:int}" 
 @using DTOs
 @inject HttpClient Http
 @inject NavigationManager Navigation
@@ -8,16 +8,16 @@
 
 <h3>Editar Producto</h3>
 
-@if (productoParaEditar == null && cargando) // Muestra cargando mientras busca el producto
+@if (productoParaEditar == null && cargando) 
 {
     <p><em>Cargando datos del producto...</em></p>
 }
-else if (productoParaEditar != null) // Muestra el formulario si se encontró
+else if (productoParaEditar != null) 
 {
     <EditForm Model="productoParaEditar" OnValidSubmit="HandleValidSubmit" FormName="editarProductoForm">
         <DataAnnotationsValidator />
 
-        @* Campos del formulario (iguales a ProductoAgregar, pero usan 'productoParaEditar') *@
+       
         <div class="mb-3">
             <label for="nombre" class="form-label">Nombre:</label>
             <InputText id="nombre" class="form-control" @bind-Value="productoParaEditar.Nombre" />
@@ -65,7 +65,7 @@ else if (productoParaEditar != null) // Muestra el formulario si se encontró
 
     </EditForm>
 }
-else // Muestra si no se encontró el producto a editar
+else 
 {
     <p class="text-danger">No se pudo cargar el producto para editar o no existe.</p>
     <button class="btn btn-secondary" @onclick="VolverAProductos">Volver al listado</button>
@@ -73,47 +73,47 @@ else // Muestra si no se encontró el producto a editar
 
 
 @code {
-    [Parameter] // Recibe el ID desde la URL
+    [Parameter] 
     public int IdProducto { get; set; }
 
-    // Objeto para guardar los datos del producto a editar
+    
     private ProductoDTO? productoParaEditar;
 
-    // Para el desplegable de categorías
+   
     private List<CategoriaDTO>? categorias;
 
-    private bool cargando = true; // Controla mensaje inicial
-    private string? errorApi; // Para mostrar errores de la API
+    private bool cargando = true; 
+    private string? errorApi; 
 
-    // Se ejecuta al cargar la página: busca categorías Y el producto a editar
+    
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            // Carga las categorías (igual que en Agregar)
+           
             categorias = await Http.GetFromJsonAsync<List<CategoriaDTO>>("categorias");
 
-            // Carga el producto específico usando el IdProducto de la URL
+            
             productoParaEditar = await Http.GetFromJsonAsync<ProductoDTO>($"productos/{IdProducto}");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error al cargar datos para editar: {ex.Message}");
-            productoParaEditar = null; // Si falla, no mostramos el form
+            productoParaEditar = null; 
         }
         finally
         {
-            cargando = false; // Terminó de cargar
+            cargando = false;
         }
     }
 
-    // Se ejecuta al enviar el formulario válido
+    
     private async Task HandleValidSubmit()
     {
-        errorApi = null; // Limpia errores previos
-        if (productoParaEditar == null) return; // Seguridad extra
+        errorApi = null; 
+        if (productoParaEditar == null) return; 
 
-        // Validación simple para la categoría
+       
         if (productoParaEditar.IdCatProducto <= 0)
         {
             MessageBox(IntPtr.Zero, "Debe seleccionar una categoría.", "Validación", 0);
@@ -122,19 +122,19 @@ else // Muestra si no se encontró el producto a editar
 
         try
         {
-            // Llama al endpoint PUT /productos de tu API
+            
             var response = await Http.PutAsJsonAsync("productos", productoParaEditar);
 
             if (response.IsSuccessStatusCode)
             {
-                Navigation.NavigateTo($"/productos/{IdProducto}"); // Vuelve a la PÁGINA DE DETALLE si se guardó bien
+                Navigation.NavigateTo($"/productos/{IdProducto}"); 
             }
             else
             {
-                // Muestra errores de la API
+                
                 var errorContent = await response.Content.ReadAsStringAsync();
                 Console.WriteLine($"Error de API al actualizar: {errorContent}");
-                errorApi = $"Error al guardar: {errorContent}"; // Guarda el error para mostrarlo (opcional)
+                errorApi = $"Error al guardar: {errorContent}"; 
                 MessageBox(IntPtr.Zero, $"Error al guardar cambios: {errorContent}", "Error API", 0);
             }
         }
@@ -146,19 +146,19 @@ else // Muestra si no se encontró el producto a editar
         }
     }
 
-    // Método para el botón "Cancelar" - Vuelve a la página de Detalle
+    
     private void VolverADetalle()
     {
         Navigation.NavigateTo($"/productos/{IdProducto}");
     }
-    // Método para el botón "Volver al listado" (si falla la carga inicial)
+    
     private void VolverAProductos()
     {
         Navigation.NavigateTo("/productos");
     }
 
-    // --- Truco MessageBox ---
+    
     [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
     public static extern int MessageBox(IntPtr hWnd, String text, String caption, uint type);
-    // --- Fin Truco ---
+  
 }

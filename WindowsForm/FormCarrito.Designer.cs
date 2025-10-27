@@ -1,4 +1,4 @@
-﻿// FormCarrito.Designer.cs
+﻿
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -9,9 +9,7 @@ namespace WindowsForm
         private void InitializeComponent()
         {
             this.SuspendLayout();
-            // 
-            // FormCarrito
-            // 
+            
             this.AutoScaleDimensions = new SizeF(7F, 15F);
             this.AutoScaleMode = AutoScaleMode.Font;
             this.ClientSize = new Size(900, 520);

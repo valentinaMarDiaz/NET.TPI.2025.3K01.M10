@@ -9,7 +9,7 @@ public class Producto
     public int Stock { get; private set; }
     public decimal PrecioActual { get; private set; }
 
-    // navegación opcional
+   
     public CategoriaProducto? Categoria { get; private set; }
 
     public Producto() { }

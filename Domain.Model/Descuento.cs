@@ -11,8 +11,8 @@ namespace Domain.Model
         public DateTime FechaCaducidadUtc { get; private set; }
 
         public string Descripcion { get; private set; } = string.Empty;
-        public string Codigo { get; private set; } = string.Empty; // Único, mayúsculas
-        public decimal Porcentaje { get; private set; } // 0 < % ≤ 100
+        public string Codigo { get; private set; } = string.Empty; 
+        public decimal Porcentaje { get; private set; } 
 
         public Descuento() { }
 

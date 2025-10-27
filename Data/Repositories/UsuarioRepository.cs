@@ -56,7 +56,7 @@ public class UsuarioRepository
         else if (ent is Vendedor eVen && u is Vendedor nVen)
         {
             eVen.SetCuil(nVen.Cuil);
-            // Legajo no se toca acá
+            
         }
 
         ctx.SaveChanges();
@@ -72,7 +72,7 @@ public class UsuarioRepository
         return q.Any();
     }
 
-    // Búsqueda por texto y tipo ("Cliente" | "Vendedor" | null)
+    
     public IEnumerable<Usuario> GetByCriteria(string texto, string? tipo = null)
     {
         using var ctx = CreateContext();

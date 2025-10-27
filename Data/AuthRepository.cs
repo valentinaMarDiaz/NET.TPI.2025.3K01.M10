@@ -39,7 +39,7 @@ public class AuthRepository
     public Vendedor RegisterVendedor(Vendedor v)
     {
         using var ctx = Create();
-        if (v.Legajo <= 0) v.AsignarLegajo(NextLegajo());  // <- acá
+        if (v.Legajo <= 0) v.AsignarLegajo(NextLegajo());  
         ctx.Vendedores.Add(v);
         ctx.SaveChanges();
         return v;

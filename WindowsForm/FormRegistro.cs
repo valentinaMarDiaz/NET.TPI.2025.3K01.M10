@@ -1,14 +1,14 @@
 ﻿using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
-using API.Clients; // Asegúrate que este namespace exista o ajústalo al tuyo
-using DTOs;        // Asegúrate que este namespace exista o ajústalo al tuyo
+using API.Clients; 
+using DTOs;        
 
-namespace WindowsForm // Asegúrate que este namespace sea el correcto para tu proyecto
+namespace WindowsForm
 {
     public partial class FormRegistro : Form
     {
-        // Se mantiene la propiedad User para el login automático original
+       
         public LoginResponseDTO? User { get; private set; }
 
         readonly Label titulo = new()
@@ -21,29 +21,28 @@ namespace WindowsForm // Asegúrate que este namespace sea el correcto para tu p
             TextAlign = ContentAlignment.MiddleCenter
         };
 
-        // Rol
+        
         readonly RadioButton rbCliente = new() { Text = "Cliente", Checked = true, AutoSize = true };
         readonly RadioButton rbVendedor = new() { Text = "Vendedor", AutoSize = true };
 
-        // Comunes
+        
         readonly TextBox txtNombre = new() { Width = 260 };
         readonly TextBox txtApellido = new() { Width = 260 };
         readonly TextBox txtEmail = new() { Width = 260 };
         readonly TextBox txtPassword = new() { Width = 260, UseSystemPasswordChar = true };
 
-        // --- INICIO CORRECCIÓN VISUAL ---
-        // Cliente: Se cambia Panel por FlowLayoutPanel para correcta visualización
+        
         readonly FlowLayoutPanel pnlCliente = new()
         {
             AutoSize = true,
             Dock = DockStyle.Fill,
-            FlowDirection = FlowDirection.TopDown // Organiza controles verticalmente
+            FlowDirection = FlowDirection.TopDown 
         };
-        // --- FIN CORRECCIÓN VISUAL ---
+        
         readonly TextBox txtTelefono = new() { Width = 260 };
         readonly TextBox txtDireccion = new() { Width = 260 };
 
-        // Vendedor (Sin cambios)
+      
         readonly Panel pnlVendedor = new() { AutoSize = true, Dock = DockStyle.Fill };
         readonly TextBox txtCuil = new() { Width = 260 };
 
@@ -52,7 +51,7 @@ namespace WindowsForm // Asegúrate que este namespace sea el correcto para tu p
 
         public FormRegistro()
         {
-            // Se mantiene la llamada a InitializeComponent
+            
             InitializeComponent();
 
             Text = "Registro"; Width = 560; Height = 520;
@@ -69,14 +68,14 @@ namespace WindowsForm // Asegúrate que este namespace sea el correcto para tu p
             root.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
             root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
 
-            // Fila rol (Sin cambios)
+            
             var panelRol = new FlowLayoutPanel { FlowDirection = FlowDirection.LeftToRight, AutoSize = true };
             panelRol.Controls.AddRange(new Control[] { rbCliente, rbVendedor });
             root.Controls.Add(new Label { Text = "Rol", AutoSize = true, Font = new Font("Segoe UI", 10) }, 0, 0);
             root.Controls.Add(panelRol, 1, 0);
 
             int row = 1;
-            // Función 'add' (Sin cambios)
+            
             void add(string label, Control ctrl)
             {
                 root.Controls.Add(new Label { Text = label, AutoSize = true, Font = new Font("Segoe UI", 10) }, 0, row);
@@ -84,24 +83,24 @@ namespace WindowsForm // Asegúrate que este namespace sea el correcto para tu p
                 row++;
             }
 
-            // Comunes (Sin cambios)
+           
             add("Nombre", txtNombre);
             add("Apellido", txtApellido);
             add("Email", txtEmail);
             add("Contraseña", txtPassword);
 
-            // Panel cliente (Usa el FlowLayoutPanel pero la lógica de agregar controles es la misma)
+           
             pnlCliente.Controls.Add(MakeRow("Teléfono (Cliente)", txtTelefono));
             pnlCliente.Controls.Add(MakeRow("Dirección (Cliente)", txtDireccion));
             root.Controls.Add(new Label { Text = "", AutoSize = true }, 0, row);
             root.Controls.Add(pnlCliente, 1, row++);
 
-            // Panel vendedor (Sin cambios)
+            
             pnlVendedor.Controls.Add(MakeRow("CUIL (Vendedor)", txtCuil));
             root.Controls.Add(new Label { Text = "", AutoSize = true }, 0, row);
             root.Controls.Add(pnlVendedor, 1, row++);
 
-            // Botones (Sin cambios)
+           
             var botones = new FlowLayoutPanel { FlowDirection = FlowDirection.LeftToRight, Dock = DockStyle.Fill };
             botones.Controls.AddRange(new Control[] { btnRegistrar, btnCancelar });
             root.Controls.Add(new Label { Text = "", AutoSize = true }, 0, row);
@@ -113,7 +112,7 @@ namespace WindowsForm // Asegúrate que este namespace sea el correcto para tu p
             EstiloBotonAzul(btnRegistrar);
             EstiloBotonAzul(btnCancelar);
 
-            // Toggle inicial y eventos (Sin cambios)
+            
             void TogglePorRol()
             {
                 bool esCliente = rbCliente.Checked;
@@ -124,7 +123,7 @@ namespace WindowsForm // Asegúrate que este namespace sea el correcto para tu p
             rbVendedor.CheckedChanged += (_, __) => TogglePorRol();
             TogglePorRol();
 
-            // Evento btnRegistrar_Click (Mantiene la lógica original con login automático)
+            
             btnRegistrar.Click += async (_, __) =>
             {
                 try
@@ -170,15 +169,15 @@ namespace WindowsForm // Asegúrate que este namespace sea el correcto para tu p
                         await AuthApiClient.RegisterVendedorAsync(dto);
                     }
 
-                    // Se mantiene el login automático original
+                    
                     var resp = await AuthApiClient.LoginAsync(new LoginRequestDTO { Email = email, Password = pass });
                     if (resp is null)
                     {
                         MessageBox.Show("Registro OK, pero no se pudo iniciar sesión."); return;
                     }
-                    User = resp; // Guarda el usuario para que FormInicio lo use
-                    DialogResult = DialogResult.OK; // Indica éxito
-                    Close(); // Cierra FormRegistro para ir al menú
+                    User = resp; 
+                    DialogResult = DialogResult.OK; 
+                    Close();
                 }
                 catch (Exception ex)
                 {
@@ -186,7 +185,7 @@ namespace WindowsForm // Asegúrate que este namespace sea el correcto para tu p
                 }
             };
 
-            // Evento btnCancelar (Sin cambios)
+          
             btnCancelar.Click += (_, __) =>
             {
                 DialogResult = DialogResult.Cancel;
@@ -194,7 +193,7 @@ namespace WindowsForm // Asegúrate que este namespace sea el correcto para tu p
             };
         }
 
-        // --- Helpers UI (sin cambios) ---
+        
         private Control MakeRow(string label, Control input)
         {
             var p = new TableLayoutPanel { ColumnCount = 2, Width = 320, AutoSize = true };
@@ -219,9 +218,8 @@ namespace WindowsForm // Asegúrate que este namespace sea el correcto para tu p
         [DllImport("Gdi32.dll", EntryPoint = "CreateRoundRectRgn")]
         private static extern IntPtr CreateRoundRectRgn(int nLeftRect, int nTopRect, int nRightRect, int nBottomRect, int nWidthEllipse, int nHeightEllipse);
 
-        // --- NECESARIO SI NO TIENES ARCHIVO .Designer.cs ---
-        // Se mantiene el método InitializeComponent vacío
+        
         private void InitializeComponent() { }
-        // --- FIN NECESARIO ---
+        
     }
 }

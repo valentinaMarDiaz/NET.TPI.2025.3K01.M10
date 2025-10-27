@@ -5,7 +5,7 @@ public class Cliente : Usuario
     public string Telefono { get; private set; } = "";
     public string Direccion { get; private set; } = "";
 
-    public Cliente() { } // EF
+    public Cliente() { } 
     public Cliente(string nombre, string apellido, string email, string passwordHash,
                    string telefono, string direccion)
         : base(nombre, apellido, email, passwordHash)

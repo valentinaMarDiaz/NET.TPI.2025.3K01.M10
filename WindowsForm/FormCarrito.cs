@@ -48,23 +48,23 @@ namespace WindowsForm
             StartPosition = FormStartPosition.CenterParent;
             BackColor = Color.FromArgb(245, 247, 250);
 
-            // ---- Estilo de botones (azules, redondeados) ----
+           
             ConfigurarEstiloBoton(btnEliminar);
             ConfigurarEstiloBoton(btnAplicarCodigo);
             ConfigurarEstiloBoton(btnVolver);
             ConfigurarEstiloBoton(btnConfirmar);
 
-            // ---- Top / Bottom ----
+            
             pnlTop.Controls.AddRange(new Control[] { btnEliminar, btnAplicarCodigo, btnVolver });
             pnlBottom.Controls.Add(lblTotal);
-            pnlBottom.Controls.Add(new Label() { Width = 20 }); // separador
+            pnlBottom.Controls.Add(new Label() { Width = 20 }); 
             pnlBottom.Controls.Add(btnConfirmar);
 
             Controls.Add(grid);
             Controls.Add(pnlTop);
             Controls.Add(pnlBottom);
 
-            // ---- Grid: columnas útiles ----
+           
             grid.Columns.Clear();
             grid.Columns.Add(new DataGridViewTextBoxColumn
             {
@@ -104,7 +104,7 @@ namespace WindowsForm
 
             grid.DataSource = bs;
 
-            // ---- Eventos ----
+            
             Shown += async (_, __) => await CargarAsync();
 
             btnEliminar.Click += async (_, __) =>
@@ -127,7 +127,7 @@ namespace WindowsForm
                 while (true)
                 {
                     var codigo = PedirCodigo();
-                    if (codigo == null) break; // cancelado
+                    if (codigo == null) break; 
 
                     try
                     {
@@ -149,7 +149,7 @@ namespace WindowsForm
                     catch (Exception ex)
                     {
                         MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        // sigue en el while para permitir reintentar
+                        
                     }
                 }
             };
@@ -180,7 +180,7 @@ namespace WindowsForm
             lblTotal.Text = $"Total: {c.Total:N2}";
         }
 
-        // ---------- helpers UI ----------
+        
         private void ConfigurarEstiloBoton(Button boton)
         {
             boton.FlatStyle = FlatStyle.Flat;

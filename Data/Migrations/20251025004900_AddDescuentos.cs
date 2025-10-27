@@ -5,10 +5,10 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Data.Migrations
 {
-    /// <inheritdoc />
+
     public partial class AddDescuentos : Migration
     {
-        /// <inheritdoc />
+    
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<int>(
@@ -53,7 +53,7 @@ namespace Data.Migrations
                 column: "IdProducto");
         }
 
-        /// <inheritdoc />
+   
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(

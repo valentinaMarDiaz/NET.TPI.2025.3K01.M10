@@ -1,4 +1,4 @@
-﻿// Domain.Model/CarritoItem.cs
+﻿
 namespace Domain.Model
 {
     public class CarritoItem

@@ -46,7 +46,7 @@
     private LoginRequestDTO loginModel = new LoginRequestDTO();
     private string? errorMessage;
 
-    // Si el usuario ya está logueado e intenta ir a "/", lo pateamos al dashboard
+    
     protected override void OnInitialized()
     {
         if (authStateProvider.CurrentUser != null)
@@ -66,7 +66,7 @@
             {
                 await authStateProvider.Login(user);
 
-                // Al loguearse, lo mandamos al dashboard
+             
                 navigationManager.NavigateTo("/dashboard");
             }
             else

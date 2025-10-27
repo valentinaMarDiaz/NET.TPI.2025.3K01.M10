@@ -32,7 +32,7 @@ public class VentaService
             dto.Detalles.Add(new VentaDetalleDTO
             {
                 IdProducto = p.IdProducto,
-                ProductoNombre = d.ProductoNombre,        // SNAPSHOT
+                ProductoNombre = d.ProductoNombre,        
                 Cantidad = d.Cantidad,
                 PrecioUnitario = d.PrecioUnitario,
                 IdDescuento = d.IdDescuento,
@@ -55,32 +55,25 @@ public class VentaService
             ClienteNombre = x.c is null ? "" : $"{x.c.Nombre} {x.c.Apellido}",
             ClienteTelefono = (x.c as Domain.Model.Cliente)?.Telefono,
             ClienteDireccion = (x.c as Domain.Model.Cliente)?.Direccion,
-            Detalles = new List<VentaDetalleDTO>() // detalles se cargan con Get(id)
+            Detalles = new List<VentaDetalleDTO>() 
         })
-        // Truco: no cargamos detalles, pero queremos el total. Lo devolvemos “calculado” por repo:
+        
         .Select(v =>
         {
-            // inyectamos el total sumando SubtotalConDescuento vía repo result (ya viene)
-            // Como VentaDTO.Total depende de Detalles, si querés mostrar total en el listado
-            // podés agregar una propiedad TotalListado en el DTO o recuperar cada venta con Get(id).
+            
             return v;
         })
         .ToList();
     }
-    /// <summary>
-    /// Suma mensual de ventas del año indicado.
-    /// Toma Venta.FechaHoraVentaUtc y suma VentaDetalle.SubtotalConDescuento.
-    /// </summary>
-    public IEnumerable<VentasMesDTO> TotalesPorMes(int anio/*, string? estado = null*/)
+   
+    public IEnumerable<VentasMesDTO> TotalesPorMes(int anio)
     {
         using var ctx = new TPIContext();
 
         var desde = new DateTime(anio, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         var hasta = desde.AddYears(1);
 
-        // Si más adelante agregás un campo Estado en Venta, descomentá y filtrá:
-        // var ventas = ctx.Ventas.AsNoTracking()
-        //     .Where(v => v.FechaHoraVentaUtc >= desde && v.FechaHoraVentaUtc < hasta && v.Estado == estado);
+       
 
         var query =
             from v in ctx.Ventas.AsNoTracking()
@@ -95,7 +88,7 @@ public class VentaService
 
         var list = query.ToList();
 
-        // Garantizo 12 meses (0 si no hubo ventas)
+        
         var dict = list.ToDictionary(x => x.Mes, x => x.Total);
         return Enumerable.Range(1, 12)
             .Select(m => new VentasMesDTO { Mes = m, Total = dict.TryGetValue(m, out var t) ? t : 0m })

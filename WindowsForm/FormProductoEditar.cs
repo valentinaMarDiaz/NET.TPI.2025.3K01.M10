@@ -13,19 +13,19 @@ public partial class FormProductoEditar : Form
     readonly bool _edit;
     readonly ProductoDTO _dto;
 
-    // Panel principal para centrar y ordenar todos los elementos
+    
     FlowLayoutPanel pnlMain = new() { Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, AutoScroll = true, Padding = new Padding(20), BackColor = Color.White };
 
     const int CTRL_WIDTH = 300;
 
-    // Controles de entrada
+
     ComboBox cmbCategoria = new() { Text = "Seleccione Categoría", DropDownStyle = ComboBoxStyle.DropDownList, Height = 25, Width = CTRL_WIDTH };
     TextBox txtNombre = new() { PlaceholderText = "Nombre", Height = 25, Width = CTRL_WIDTH };
     TextBox txtDescripcion = new() { PlaceholderText = "Descripción", Multiline = true, Height = 70, Width = CTRL_WIDTH };
     TextBox txtStock = new() { PlaceholderText = "Stock (entero >=0)", Height = 25, Width = CTRL_WIDTH };
     TextBox txtPrecio = new() { PlaceholderText = "Precio actual (decimal >=0)", Height = 25, Width = CTRL_WIDTH };
 
-    // Botones con ANCHO FIJO y ALTURA ESTANDAR
+    
     Button btnContinuar = new() { Text = "Continuar", Height = 40, Width = CTRL_WIDTH };
     Button btnVolver = new() { Text = "Volver", Height = 40, Width = CTRL_WIDTH };
     Button btnCancelar = new() { Text = "Cancelar", Height = 40, Width = CTRL_WIDTH };
@@ -44,23 +44,23 @@ public partial class FormProductoEditar : Form
 
         Controls.Add(pnlMain);
 
-        // 1. Agregar los CONTROLES DE ENTRADA (los campos)
+  
         pnlMain.Controls.AddRange(new Control[] {
             cmbCategoria, txtNombre, txtDescripcion, txtStock, txtPrecio
         });
 
-        // 2. Agregar los BOTONES
+        
         pnlMain.Controls.AddRange(new Control[] { btnContinuar, btnVolver, btnCancelar });
 
-        // 3. Aplicar ESTILO y CENTRADO
+        
         ConfigurarEstiloBoton(btnContinuar);
         ConfigurarEstiloBoton(btnVolver);
         ConfigurarEstiloBoton(btnCancelar);
 
-        // Lógica de centrado (como en FormMenu)
+       
         pnlMain.Layout += (_, __) =>
         {
-            // Centra horizontalmente todos los controles
+            
             foreach (Control ctrl in pnlMain.Controls)
             {
                 ctrl.Margin = new Padding((pnlMain.ClientSize.Width - ctrl.Width) / 2, 6, 0, 6);
@@ -127,7 +127,7 @@ public partial class FormProductoEditar : Form
         boton.Font = new Font("Segoe UI", 11, FontStyle.Bold);
         boton.Region = System.Drawing.Region.FromHrgn(CreateRoundRectRgn(0, 0, boton.Width, boton.Height, 15, 15));
 
-        // Hover
+       
         boton.MouseEnter += (_, __) => boton.BackColor = Color.FromArgb(41, 128, 185);
         boton.MouseLeave += (_, __) => boton.BackColor = Color.FromArgb(52, 152, 219);
     }

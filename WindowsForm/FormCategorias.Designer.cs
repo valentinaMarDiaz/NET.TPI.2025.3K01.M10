@@ -2,7 +2,7 @@
 using System.Xml.Linq;
 using static System.Net.Mime.MediaTypeNames;
 
-namespace WindowsForm; // <-- MISMO namespace
+namespace WindowsForm; 
 
 partial class FormCategorias
 {
@@ -12,7 +12,7 @@ partial class FormCategorias
     private DataGridView grid;
     private BindingSource bs;
 
-    /// <summary> Limpia recursos. </summary>
+  
     protected override void Dispose(bool disposing)
     {
         if (disposing && (components != null))
@@ -20,7 +20,7 @@ partial class FormCategorias
         base.Dispose(disposing);
     }
 
-    /// <summary> UI autogenerada. </summary>
+  
     private void InitializeComponent()
     {
         components = new System.ComponentModel.Container();
@@ -45,7 +45,6 @@ partial class FormCategorias
         btnAgregar.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         btnAgregar.Location = new System.Drawing.Point(494, 12);
         btnAgregar.Name = "btnAgregar";
-        // Cambio la altura del botón a 40px para consistencia
         btnAgregar.Size = new System.Drawing.Size(94, 40);
         btnAgregar.Text = "Agregar";
         btnAgregar.UseVisualStyleBackColor = true;
@@ -54,11 +53,11 @@ partial class FormCategorias
         // 
         grid.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
         grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-        grid.Location = new System.Drawing.Point(12, 60); // Ajusto la ubicación para el botón más alto
+        grid.Location = new System.Drawing.Point(12, 60); 
         grid.Name = "grid";
         grid.ReadOnly = true;
         grid.RowTemplate.Height = 25;
-        grid.Size = new System.Drawing.Size(576, 378); // Ajusto la altura
+        grid.Size = new System.Drawing.Size(576, 378); 
         grid.DataSource = bs;
         // 
         // FormCategorias

@@ -6,7 +6,7 @@ namespace Application.Services
 {
     public class CarritoService
     {
-        // ===================== Helpers =====================
+       
 
         private static Domain.Model.Carrito GetOrCreateCart(TPIContext ctx, int idCliente)
         {
@@ -26,7 +26,7 @@ namespace Application.Services
             return carrito;
         }
 
-        // Obtiene un PRECIO decimal de la entidad Producto, tolerando distintos nombres
+        
         private static decimal GetPrecioFromProduct(object producto)
         {
             var t = producto.GetType();
@@ -48,7 +48,7 @@ namespace Application.Services
 
         private static CarritoDTO MapToDto(TPIContext ctx, Domain.Model.Carrito c)
         {
-            // Traemos items + producto + (descuento) por JOIN y calculamos todo en memoria.
+            
             var rows =
                 (from i in ctx.CarritoItems.AsNoTracking().Where(x => x.IdCarrito == c.IdCarrito)
                  join p in ctx.Productos.AsNoTracking() on i.IdProducto equals p.IdProducto
@@ -64,7 +64,7 @@ namespace Application.Services
             {
                 var precioUnit = GetPrecioFromProduct(r.p);
                 decimal? porcentaje = r.d?.Porcentaje;
-                var cant = r.i.Cantidad; // aunque tenga set privado, el get es público
+                var cant = r.i.Cantidad; 
                 var nombre = GetNombreFromProduct(r.p);
 
                 decimal subtotal;
@@ -103,7 +103,7 @@ namespace Application.Services
             };
         }
 
-        // ===================== API usado por Program.cs =====================
+        
 
         public CarritoDTO Get(int idCliente)
         {
@@ -133,7 +133,7 @@ namespace Application.Services
             }
             else
             {
-                // Incrementar cantidad (manejo seguro del boxing)
+                
                 var entry = ctx.Entry(item);
                 var raw = entry.Property("Cantidad").CurrentValue;
                 var actual = raw is int i ? i : Convert.ToInt32(raw ?? 0);
@@ -154,7 +154,7 @@ namespace Application.Services
 
             var carrito = GetOrCreateCart(ctx, idCliente);
 
-            // Buscar descuento vigente (100% traducible por EF)
+          
             var now = DateTime.UtcNow;
             var desc = ctx.Descuentos
                           .AsNoTracking()
@@ -166,7 +166,7 @@ namespace Application.Services
             if (desc == null)
                 throw new ArgumentException("El código es inválido o está vencido.");
 
-            // Aplicarlo a los items del producto correspondiente
+            
             var items = ctx.CarritoItems
                            .Where(i => i.IdCarrito == carrito.IdCarrito && i.IdProducto == desc.IdProducto)
                            .ToList();

@@ -10,7 +10,7 @@ namespace WindowsForm
 {
     public partial class FormDescuentosVigentes : Form
     {
-        // UI
+    
         private readonly TextBox txtBuscar = new() { PlaceholderText = "Buscar por producto o código...", Width = 260 };
         private readonly Button btnBuscar = new() { Text = "Buscar", Width = 90 };
         private readonly Button btnVolver = new() { Text = "Volver", Width = 90 };
@@ -58,7 +58,7 @@ namespace WindowsForm
 
                 bs.DataSource = list.ToList();
 
-                // Formato amigable de columnas si existen
+               
                 if (grid.Columns["FechaInicioUtc"] is not null)
                     grid.Columns["FechaInicioUtc"].HeaderText = "Inicio (UTC)";
                 if (grid.Columns["FechaCaducidadUtc"] is not null)

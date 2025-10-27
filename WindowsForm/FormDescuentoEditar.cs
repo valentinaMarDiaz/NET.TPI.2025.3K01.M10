@@ -69,7 +69,7 @@ namespace WindowsForm
 
             Shown += async (_, __) =>
             {
-                var productos = await ProductoApiClient.GetAllAsync(); // asumimos que tenés este cliente
+                var productos = await ProductoApiClient.GetAllAsync(); 
                 cmbProducto.DisplayMember = "Nombre";
                 cmbProducto.ValueMember = "IdProducto";
                 cmbProducto.DataSource = productos.ToList();

@@ -68,7 +68,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        // Solo vendedores
+        
         var u = Auth.CurrentUser;
         if (u is null) { Nav.NavigateTo("/login"); return; }
         if (!string.Equals(u.TipoUsuario, "Vendedor", StringComparison.OrdinalIgnoreCase))
@@ -82,7 +82,7 @@ else
         try
         {
             cargando = true; error = null;
-            // Sin filtro: traemos todo
+          
             lista = (await DescuentoApiClient.GetAllAsync())
                         .OrderBy(d => d.ProductoNombre)
                         .ThenBy(d => d.Codigo)

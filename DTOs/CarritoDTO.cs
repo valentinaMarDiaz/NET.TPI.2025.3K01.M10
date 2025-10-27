@@ -1,4 +1,4 @@
-﻿// DTOs/CarritoDTO.cs
+﻿
 namespace DTOs
 {
     public class CarritoDTO
@@ -7,7 +7,7 @@ namespace DTOs
         public int IdCliente { get; set; }
         public string Estado { get; set; } = "Abierto";
 
-        // Para el badge del carrito
+       
         public int CantidadTotal { get; set; }
 
         public decimal Total { get; set; }
@@ -26,7 +26,7 @@ namespace DTOs
         public string? CodigoDescuento { get; set; }
         public decimal? Porcentaje { get; set; }
 
-        // set con setter para que el servicio lo asigne sin errores
+       
         public decimal Subtotal { get; set; }
     }
 }

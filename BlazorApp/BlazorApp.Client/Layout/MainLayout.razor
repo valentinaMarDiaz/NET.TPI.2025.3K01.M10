@@ -29,7 +29,7 @@
                     }
                 </div>
             </div>
-            @* Scripts globales *@
+            
             <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
             <script src="/js/charts.js"></script>
 
@@ -51,15 +51,12 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // suscribimos al evento (login/logout)
+       
         Auth.OnChange += HandleAuthStateChanged;
         await ActualizarBadgeCarritoAsync();
     }
 
-    /// <summary>
-    /// Método público para que las páginas hijas (Carrito, Productos, etc.)
-    /// puedan refrescar el número del carrito en el menú.
-    /// </summary>
+   
     public async Task ActualizarBadgeCarritoAsync()
     {
         _carritoCantidad = 0;
@@ -73,12 +70,12 @@
 
         try
         {
-            // Usa la propiedad correcta del usuario (Id, IdUsuario o IdCliente según tu DTO)
-            var userId = u.Id; // <- SI tu DTO usa otro nombre, cambia aquí (p.ej. u.IdCliente)
+            
+            var userId = u.Id; 
 
             var carrito = await CarritoApiClient.GetAsync(userId);
 
-            // Si tu DTO del carrito NO tiene CantidadTotal, sumamos los ítems.
+            
             _carritoCantidad =
                 carrito?.CantidadTotal
                 ?? carrito?.Items?.Sum(i => i.Cantidad) ?? 0;
@@ -92,7 +89,7 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    // Se dispara en login/logout
+    
     private async void HandleAuthStateChanged()
     {
         await ActualizarBadgeCarritoAsync();

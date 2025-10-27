@@ -14,9 +14,9 @@
         public decimal Porcentaje { get; set; }
     }
 
-    public class DescuentoCUDTO // create/update
+    public class DescuentoCUDTO 
     {
-        public int IdDescuento { get; set; } // 0 = crear
+        public int IdDescuento { get; set; } 
         public int IdProducto { get; set; }
         public DateTime FechaInicioUtc { get; set; } = DateTime.UtcNow;
         public DateTime FechaCaducidadUtc { get; set; } = DateTime.UtcNow.AddDays(7);

@@ -1,4 +1,4 @@
-﻿// Application.Services/Common/Validators.cs
+﻿
 namespace Application.Services.Common;
 
 public static class Validators

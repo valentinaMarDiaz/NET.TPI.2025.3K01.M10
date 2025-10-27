@@ -7,18 +7,18 @@ namespace Domain.Model
         public int IdVentaDetalle { get; private set; }
         public int IdVenta { get; private set; }
 
-        // Producto
+   
         public int IdProducto { get; private set; }
-        public string ProductoNombre { get; private set; } = string.Empty;   // SNAPSHOT
+        public string ProductoNombre { get; private set; } = string.Empty;   
         public int Cantidad { get; private set; }
-        public decimal PrecioUnitario { get; private set; }                   // SNAPSHOT (precio al momento de vender)
+        public decimal PrecioUnitario { get; private set; }                   
 
-        // Descuento aplicado (snapshot)
+       
         public int? IdDescuento { get; private set; }
         public string? CodigoDescuento { get; private set; }
         public decimal? PorcentajeDescuento { get; private set; }
 
-        // Totales línea
+        
         public decimal SubtotalConDescuento { get; private set; }
 
         public VentaDetalle() { }

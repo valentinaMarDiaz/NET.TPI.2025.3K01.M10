@@ -30,7 +30,7 @@ public partial class FormVentasLista : Form
         Controls.Add(grid); Controls.Add(top);
         grid.DataSource = bs;
 
-        // === columnas explícitas para evitar nombres errados ===
+      
         grid.Columns.Clear();
         grid.Columns.Add(new DataGridViewTextBoxColumn
         {
@@ -54,13 +54,13 @@ public partial class FormVentasLista : Form
         {
             HeaderText = "Fecha",
             DataPropertyName = "FechaHoraVentaUtc",
-            DefaultCellStyle = { Format = "g" }, // se mostrará UTC; si querés local, transformalo en el DTO o al bindear
+            DefaultCellStyle = { Format = "g" }, 
             Width = 140
         });
         grid.Columns.Add(new DataGridViewTextBoxColumn
         {
             HeaderText = "Total",
-            DataPropertyName = "TotalListado",   // <<-- clave: usa el total precalculado para la LISTA
+            DataPropertyName = "TotalListado",  
             DefaultCellStyle = { Format = "N2" },
             Width = 110
         });
@@ -80,7 +80,7 @@ public partial class FormVentasLista : Form
         DateTime? h = chkHasta.Checked ? DateTime.SpecifyKind(dtHasta.Value, DateTimeKind.Local).ToUniversalTime() : null;
 
         var lista = (await VentaApiClient.ListAsync(idCliente, d, h)).ToList();
-        // Si tu API devuelve Fecha en UTC y querés mostrar LOCAL en la grilla:
+        
         foreach (var v in lista) v.FechaHoraVentaUtc = v.FechaHoraVentaUtc.ToLocalTime();
 
         bs.DataSource = lista;
@@ -98,7 +98,7 @@ public partial class FormVentasLista : Form
             return;
         }
 
-        // Armo un texto claro con descuento (si tuvo)
+  
         var lineas = det.Detalles.Select(d =>
         {
             var baseLinea = $"- {d.ProductoNombre}: {d.Cantidad} x {d.PrecioUnitario:N2}";

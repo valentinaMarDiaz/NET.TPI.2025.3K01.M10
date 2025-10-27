@@ -1,16 +1,16 @@
-using Application.Services; // Services
-using DTOs;                 // DTOs
-using Data;                 // TPIContext
-using Microsoft.EntityFrameworkCore; // Migrate()
+using Application.Services; 
+using DTOs;               
+using Data;                 
+using Microsoft.EntityFrameworkCore; 
 using System;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Swagger
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// --- CORS: una sola policy, y con http/https del Blazor host (7282) ---
+
 var allowedOrigins = new[] {
     "https://localhost:7282",
     "http://localhost:7282"
@@ -25,19 +25,19 @@ builder.Services.AddCors(o =>
 
 var app = builder.Build();
 
-// Crear/actualizar DB al inicio
+
 try
 {
     using var ctx = new TPIContext();
-    ctx.Database.Migrate();      // usa migraciones
-    // ctx.Database.EnsureCreated(); // alternativo si no usás migraciones
+    ctx.Database.Migrate();      
+    
 }
 catch (Exception ex)
 {
     Console.WriteLine("DB init error: " + ex.Message);
 }
 
-// Pipeline
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -47,9 +47,9 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseCors("Frontend");
 
-// ===================== ENDPOINTS MINIMAL API =====================
 
-// ---------------- AUTH ----------------
+
+//auth
 app.MapPost("/auth/register/cliente", (RegisterClienteDTO dto) =>
 {
     try { return Results.Ok(new AuthService().RegisterCliente(dto)); }
@@ -68,7 +68,7 @@ app.MapPost("/auth/login", (LoginRequestDTO dto) =>
     return resp is null ? Results.Unauthorized() : Results.Ok(resp);
 });
 
-// -------------- CATEGORÍAS --------------
+// categorias
 app.MapGet("/categorias", () => new CategoriaService().GetAll());
 
 app.MapGet("/categorias/{id:int}", (int id) =>
@@ -92,7 +92,7 @@ app.MapPut("/categorias", (CategoriaDTO dto) =>
 app.MapDelete("/categorias/{id:int}", (int id) =>
     new CategoriaService().Delete(id) ? Results.NoContent() : Results.NotFound());
 
-// ---------------- USUARIOS ----------------
+// usuarios
 app.MapGet("/usuarios", () => new UsuarioService().GetAll());
 
 app.MapGet("/usuarios/{id:int}", (int id) =>
@@ -110,7 +110,7 @@ app.MapPut("/usuarios", (UsuarioDTO dto) =>
 app.MapDelete("/usuarios/{id:int}", (int id) =>
     new UsuarioService().Delete(id) ? Results.NoContent() : Results.NotFound());
 
-// ---------- PRODUCTOS ----------
+//prosuctos
 app.MapGet("/productos", () => new ProductoService().GetAll());
 
 app.MapGet("/productos/{id:int}", (int id) =>
@@ -185,7 +185,7 @@ app.MapPost("/carrito/{idCliente:int}/items/eliminar", (int idCliente, int[] pro
 });
 
 
-// -------- VENTAS --------
+// ventas
 app.MapGet("/ventas", (int? idCliente, DateTime? desdeUtc, DateTime? hastaUtc) =>
 {
     var filtro = new VentaFiltroDTO { IdCliente = idCliente, DesdeUtc = desdeUtc, HastaUtc = hastaUtc };
@@ -203,7 +203,7 @@ app.MapDelete("/ventas/{id:int}", (int id) =>
     try { new VentaService().Delete(id); return Results.NoContent(); }
     catch (ArgumentException ex) { return Results.BadRequest(new { error = ex.Message }); }
 });
-// --- REPORTES: ventas por mes ---
+// reportes por mes 
 app.MapGet("/reportes/ventas-por-mes", (int? anio/*, string? estado*/) =>
 {
     var year = anio ?? DateTime.UtcNow.Year;
@@ -213,21 +213,21 @@ app.MapGet("/reportes/ventas-por-mes", (int? anio/*, string? estado*/) =>
 });
 
 
-// ----- DESCUENTOS -----
-// Listado (si tu servicio soporta filtro, podés cambiar a: (string? producto) => Results.Ok(new DescuentoService().GetAll(producto)))
+// descuentos 
+
 app.MapGet("/descuentos", () =>
 {
     return Results.Ok(new DescuentoService().GetAll());
 });
 
-// *** NUEVO: detalle por ID (lo que faltaba) ***
+
 app.MapGet("/descuentos/{id:int}", (int id) =>
 {
     var dto = new DescuentoService().Get(id);
     return dto is null ? Results.NotFound() : Results.Ok(dto);
 });
 
-// Crear: recibo CUDTO del cliente y lo mapeo al DTO del service
+
 app.MapPost("/descuentos", (DescuentoCUDTO cu) =>
 {
     try
@@ -247,7 +247,7 @@ app.MapPost("/descuentos", (DescuentoCUDTO cu) =>
     catch (ArgumentException ex) { return Results.BadRequest(new { error = ex.Message }); }
 });
 
-// Actualizar: idem, mapear CUDTO -> DTO
+
 app.MapPut("/descuentos", (DescuentoCUDTO cu) =>
 {
     try
@@ -272,7 +272,7 @@ app.MapDelete("/descuentos/{id:int}", (int id) =>
     return new DescuentoService().Delete(id) ? Results.NoContent() : Results.NotFound();
 });
 
-// ----- DESCUENTOS (CLIENTE) -----
+//descuento cliente 
 app.MapGet("/descuentos/vigentes", (string? texto) =>
 {
     var svc = new Application.Services.DescuentoService();
@@ -293,6 +293,6 @@ app.MapGet("/descuentos/validar", (string codigo) =>
 .Produces(StatusCodes.Status404NotFound)
 .WithOpenApi();
 
-// ===================== FIN ENDPOINTS =====================
+
 
 app.Run();

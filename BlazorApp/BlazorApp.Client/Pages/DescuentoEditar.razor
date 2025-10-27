@@ -70,12 +70,12 @@ else
 }
 
 @code {
-    [Parameter] public int Id { get; set; } // <-- Debe coincidir con la ruta
+    [Parameter] public int Id { get; set; } 
 
     private DescuentoCUDTO model = new();
     private List<ProductoDTO> productos = new();
     private DateTime inicioLocal, caducaLocal;
-    private string codigo = ""; // <-- FIX
+    private string codigo = ""; 
     private string? error;
     private bool cargando = true, notFound = false;
 
@@ -100,7 +100,7 @@ else
 
             inicioLocal = DateTime.SpecifyKind(existing.FechaInicioUtc, DateTimeKind.Utc).ToLocalTime();
             caducaLocal = DateTime.SpecifyKind(existing.FechaCaducidadUtc, DateTimeKind.Utc).ToLocalTime();
-            codigo = existing.Codigo; // <-- FIX
+            codigo = existing.Codigo; 
         }
         catch (Exception ex) { error = ex.Message; }
         finally { cargando = false; }
@@ -112,7 +112,7 @@ else
 
         if (model.IdProducto <= 0) { error = "Seleccione un producto."; return; }
 
-        model.Codigo = (codigo ?? "").Trim().ToUpperInvariant(); // <-- FIX
+        model.Codigo = (codigo ?? "").Trim().ToUpperInvariant(); 
         if (string.IsNullOrWhiteSpace(model.Codigo)) { error = "El código es obligatorio."; return; }
 
         if (model.Porcentaje <= 0 || model.Porcentaje > 100) { error = "El % debe ser > 0 y ≤ 100."; return; }

@@ -4,9 +4,9 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 
-@* --- LÍNEA AGREGADA --- *@
+
 @rendermode InteractiveWebAssembly
-@* --- FIN LÍNEA AGREGADA --- *@
+
 
 
 <PageTitle>Detalle de Producto</PageTitle>
@@ -51,33 +51,31 @@ else
     protected override async Task OnInitializedAsync()
     {
         cargando = true;
-        producto = null; // Reiniciamos por si acaso
+        producto = null; 
         try
         {
-            // Hacemos la llamada GET
+            
             var response = await Http.GetAsync($"productos/{IdProducto}");
 
-            // Imprimimos el código de estado (debería ser 200 OK)
+            
             Console.WriteLine($"Código de Estado de la API: {response.StatusCode}");
 
-            // Leemos el cuerpo de la respuesta COMO TEXTO
             string responseBody = await response.Content.ReadAsStringAsync();
 
-            // ¡IMPRIMIMOS EL TEXTO CRUDO RECIBIDO!
-            Console.WriteLine($"Cuerpo de la Respuesta (texto): '{responseBody}'"); // Fíjate si esto está vacío o tiene algo raro
+      
+            Console.WriteLine($"Cuerpo de la Respuesta (texto): '{responseBody}'"); 
 
-            // Solo si la respuesta fue exitosa Y el cuerpo no está vacío...
+            
             if (response.IsSuccessStatusCode && !string.IsNullOrWhiteSpace(responseBody))
             {
                 try
                 {
-                    // ...intentamos convertirlo a ProductoDTO
-                    // Usamos System.Text.Json directamente para más control
+                    
                     producto = System.Text.Json.JsonSerializer.Deserialize<ProductoDTO>(responseBody, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 }
                 catch (System.Text.Json.JsonException jsonEx)
                 {
-                    // Si falla la conversión a JSON, lo registramos
+                  
                     Console.WriteLine($"Error al deserializar JSON: {jsonEx.Message}");
                     producto = null;
                 }
@@ -89,24 +87,24 @@ else
             }
             else
             {
-                // Si la API devolvió un error (ej: 404)
+                
                 Console.WriteLine($"Error de API (código no exitoso): {response.StatusCode}");
                 producto = null;
             }
         }
-        catch (HttpRequestException netEx) // Error de red
+        catch (HttpRequestException netEx) 
         {
             Console.WriteLine($"Error de red al llamar a la API: {netEx.Message}");
             producto = null;
         }
-        catch (Exception ex) // Otro error inesperado
+        catch (Exception ex) 
         {
             Console.WriteLine($"Error inesperado al cargar detalle: {ex.Message}");
             producto = null;
         }
         finally
         {
-            cargando = false; // Terminó el intento de carga
+            cargando = false; 
         }
     }
 
@@ -117,29 +115,28 @@ else
 
     private void IrAEditar()
     {
-        // Navega a la ruta de edición, pasando el Id del producto actual
+        
         Navigation.NavigateTo($"/productos/editar/{IdProducto}");
     }
 
     private async Task ConfirmarYEliminarProducto()
     {
-        // --- INICIO CAMBIO ---
-        // Usamos JS Interop para mostrar el diálogo de confirmación del NAVEGADOR
+        
         bool confirmado = await JSRuntime.InvokeAsync<bool>("confirm", $"¿Estás seguro de que deseas eliminar el producto '{producto?.Nombre}'?");
-        // --- FIN CAMBIO ---
+        
 
-        if (confirmado) // Si el usuario presionó "Aceptar" (o "Sí")
+        if (confirmado) 
         {
             try
             {
-                // Llama al endpoint DELETE /productos/{id} de tu API
+                
                 var response = await Http.DeleteAsync($"productos/{IdProducto}");
 
                 if (response.IsSuccessStatusCode)
                 {
-                    // Usamos alert de JS para el mensaje de éxito (más web-friendly)
+                    
                     await JSRuntime.InvokeVoidAsync("alert", "Producto eliminado con éxito.");
-                    Navigation.NavigateTo("/productos"); // Vuelve a la lista después de eliminar
+                    Navigation.NavigateTo("/productos"); 
                 }
                 else
                 {
@@ -154,7 +151,7 @@ else
                 await JSRuntime.InvokeVoidAsync("alert", $"Error inesperado: {ex.Message}");
             }
         }
-        // Si el usuario presiona "Cancelar" (o "No"), no hacemos nada.
+        
     }
 
 

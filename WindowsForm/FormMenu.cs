@@ -12,7 +12,7 @@ namespace WindowsForm
     {
         private readonly LoginResponseDTO _user;
 
-        // ---- expuesto para el ApplicationContext ----
+       
         public bool LogoutRequested { get; private set; } = false;
 
         private readonly Label lblBienvenida = new()
@@ -33,21 +33,21 @@ namespace WindowsForm
             BackColor = Color.White
         };
 
-        // En vez de “Salir”, ahora es “Cerrar sesión”
+        
         private readonly Button btnCerrarSesion = new() { Text = "Cerrar sesión", Height = 40, Width = 240 };
 
-        // Vendedor
+    
         private readonly Button btnUsuarios = new() { Text = "Lista de usuarios", Height = 40, Width = 240 };
         private readonly Button btnCategorias = new() { Text = "Lista de categorías", Height = 40, Width = 240 };
         private readonly Button btnProductos = new() { Text = "Productos", Height = 40, Width = 240 };
-        private readonly Button btnDescuentos = new() { Text = "Descuentos", Height = 40, Width = 240 }; // <-- NUEVO
+        private readonly Button btnDescuentos = new() { Text = "Descuentos", Height = 40, Width = 240 };
         private readonly Button btnHistorial = new() { Text = "Historial de precios", Height = 40, Width = 240 };
         private readonly Button btnVentas = new() { Text = "Ventas", Height = 40, Width = 240 };
 
-        // Cliente
+       
         private readonly Button btnProductosCliente = new() { Text = "Productos", Height = 40, Width = 240 };
         private readonly Button btnCarrito = new() { Text = "Carrito", Height = 40, Width = 240 };
-        private readonly Button btnDescuentosCliente = new() { Text = "Descuentos", Height = 40, Width = 240 }; // <-- NUEVO
+        private readonly Button btnDescuentosCliente = new() { Text = "Descuentos", Height = 40, Width = 240 }; 
         private readonly Label lblBadge = new() { Text = "0", AutoSize = true, BackColor = Color.Red, ForeColor = Color.White, Padding = new Padding(6, 2, 6, 2) };
 
         public FormMenu(LoginResponseDTO user)
@@ -71,17 +71,17 @@ namespace WindowsForm
                     ctrl.Margin = new Padding((panelBotones.ClientSize.Width - ctrl.Width) / 2, 8, 0, 8);
             };
 
-            // Estilo
+           
             ConfigurarEstiloBoton(btnUsuarios);
             ConfigurarEstiloBoton(btnCategorias);
             ConfigurarEstiloBoton(btnProductos);
-            ConfigurarEstiloBoton(btnDescuentos);       // <-- NUEVO
+            ConfigurarEstiloBoton(btnDescuentos);       
             ConfigurarEstiloBoton(btnHistorial);
             ConfigurarEstiloBoton(btnVentas);
 
             ConfigurarEstiloBoton(btnProductosCliente);
             ConfigurarEstiloBoton(btnCarrito);
-            ConfigurarEstiloBoton(btnDescuentosCliente); // <-- NUEVO
+            ConfigurarEstiloBoton(btnDescuentosCliente); 
             ConfigurarEstiloBoton(btnCerrarSesion);
 
             Controls.Add(panelBotones);
@@ -89,7 +89,7 @@ namespace WindowsForm
 
             if (_user.TipoUsuario == "Cliente")
             {
-                // badge del carrito
+               
                 btnCarrito.Controls.Add(lblBadge);
                 btnCarrito.SizeChanged += (_, __) =>
                 {
@@ -100,7 +100,7 @@ namespace WindowsForm
                 {
                     btnProductosCliente,
                     btnCarrito,
-                    btnDescuentosCliente, // <-- NUEVO en menú cliente
+                    btnDescuentosCliente, 
                     btnCerrarSesion
                 });
 
@@ -116,7 +116,7 @@ namespace WindowsForm
                     f.ShowDialog(this);
                 };
 
-                btnDescuentosCliente.Click += (_, __) => // <-- abre vigentes
+                btnDescuentosCliente.Click += (_, __) => 
                 {
                     using var f = new FormDescuentosVigentes();
                     f.ShowDialog(this);
@@ -131,7 +131,7 @@ namespace WindowsForm
                     btnUsuarios,
                     btnCategorias,
                     btnProductos,
-                    btnDescuentos,  // <-- NUEVO en menú vendedor
+                    btnDescuentos,  
                     btnHistorial,
                     btnVentas,
                     btnCerrarSesion
@@ -140,7 +140,7 @@ namespace WindowsForm
                 btnUsuarios.Click += (_, __) => { using var f = new FormUsuarioLista(); f.ShowDialog(this); };
                 btnCategorias.Click += (_, __) => { using var f = new FormCategoriaLista(); f.ShowDialog(this); };
                 btnProductos.Click += (_, __) => { using var f = new FormProductosLista(); f.ShowDialog(this); };
-                btnDescuentos.Click += (_, __) => { using var f = new FormDescuentoLista(); f.ShowDialog(this); }; // <-- abre CRUD descuentos
+                btnDescuentos.Click += (_, __) => { using var f = new FormDescuentoLista(); f.ShowDialog(this); }; 
                 btnHistorial.Click += (_, __) => { using var f = new FormHistorialPrecios(); f.ShowDialog(this); };
                 btnVentas.Click += (_, __) => { using var f = new FormVentasLista(); f.ShowDialog(this); };
             }
@@ -150,10 +150,10 @@ namespace WindowsForm
                 LogoutAndClose();
             }
 
-            // Cerrar sesión (volver al Inicio)
+           
             btnCerrarSesion.Click += (_, __) => LogoutAndClose();
 
-            // Si el usuario cierra con la X, lo tratamos como logout también (opcional)
+            
             FormClosing += (_, e) =>
             {
                 if (!LogoutRequested) LogoutRequested = true;
@@ -163,7 +163,7 @@ namespace WindowsForm
         private void LogoutAndClose()
         {
             LogoutRequested = true;
-            Close(); // NO Application.Exit()
+            Close(); 
         }
 
         private void ConfigurarEstiloBoton(Button boton)
@@ -182,7 +182,7 @@ namespace WindowsForm
             boton.MouseLeave += (_, __) => boton.BackColor = Color.FromArgb(52, 152, 219);
         }
 
-        // En FormMenu.cs
+       
         private async Task RefreshBadgeAsync()
         {
             try

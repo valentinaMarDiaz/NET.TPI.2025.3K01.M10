@@ -27,7 +27,7 @@ else if (carrito == null || carrito.Items.Count == 0)
 }
 else
 {
-    <!-- Encabezado: seleccionar todo + eliminar seleccionados -->
+  
     <div class="d-flex justify-content-between align-items-center mb-2">
         <div class="form-check">
             <input class="form-check-input"
@@ -157,11 +157,11 @@ else
     private bool aplicandoCodigo = false;
     private bool confirmandoCompra = false;
 
-    // Selección múltiple
+ 
     private readonly HashSet<int> _seleccion = new();
     private bool _selectAll = false;
 
-    // Recibimos el MainLayout para actualizar el badge
+   
     [CascadingParameter] public MainLayout? Layout { get; set; }
 
     protected override async Task OnInitializedAsync()
@@ -185,7 +185,7 @@ else
         {
             carrito = await CarritoApiClient.GetAsync(authStateProvider.CurrentUser!.Id);
 
-            // Re-sincronizo selección con los items reales del carrito
+            
             _seleccion.RemoveWhere(id => carrito.Items.All(i => i.IdProducto != id));
             _selectAll = carrito.Items.Count > 0 && _seleccion.Count == carrito.Items.Count;
         }
@@ -200,7 +200,7 @@ else
         }
     }
 
-    // Checkbox por fila
+   
     private void RowCheckboxChanged(int idProducto, ChangeEventArgs e)
     {
         var isChecked = e?.Value is bool b && b;
@@ -210,7 +210,7 @@ else
         _selectAll = carrito?.Items.Count > 0 && _seleccion.Count == carrito!.Items.Count;
     }
 
-    // Seleccionar todo
+  
     private void SelectAllChanged(ChangeEventArgs e)
     {
         var check = e?.Value is bool b && b;
@@ -230,12 +230,10 @@ else
 
         try
         {
-            // Si agregaste el endpoint de lote:
+            
             await CarritoApiClient.RemoveManyAsync(authStateProvider.CurrentUser!.Id, _seleccion);
 
-            // (Alternativa sin endpoint de lote)
-            // foreach (var idProd in _seleccion)
-            //     await CarritoApiClient.RemoveAsync(authStateProvider.CurrentUser!.Id, idProd);
+            
 
             _seleccion.Clear();
             _selectAll = false;

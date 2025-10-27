@@ -3,16 +3,16 @@ using System.Windows.Forms;
 using API.Clients;
 using DTOs;
 using System.Linq;
-using System.Runtime.InteropServices; // Necesario para CreateRoundRectRgn
+using System.Runtime.InteropServices; 
 
 namespace WindowsForm;
 
 public partial class FormHistorialPrecios : Form
 {
-    // Lista con expansión por producto
+    
     readonly TreeView tv = new() { Dock = DockStyle.Fill, BackColor = Color.White };
 
-    // Botones
+  
     readonly Button btnActualizar = new() { Text = "Actualizar", Height = 40, Width = 120 };
     readonly Button btnSalir = new() { Text = "Salir", Height = 40, Width = 120 };
 
@@ -21,16 +21,15 @@ public partial class FormHistorialPrecios : Form
         InitializeComponent();
         Text = "Historial de precios";
         Width = 700; Height = 600; StartPosition = FormStartPosition.CenterParent;
-        BackColor = Color.FromArgb(245, 247, 250); // Fondo del formulario
-
-        // Panel para botones al pie, estandarizado a 56px de altura
+        BackColor = Color.FromArgb(245, 247, 250); 
+       
         FlowLayoutPanel pnlBotones = new() { Dock = DockStyle.Bottom, Height = 56, Padding = new Padding(10, 10, 0, 0), BackColor = Color.FromArgb(245, 247, 250) };
 
-        // Aplicar estilo a los botones
+        
         ConfigurarEstiloBoton(btnActualizar);
         ConfigurarEstiloBoton(btnSalir);
 
-        // Aseguro margen de botones para consistencia
+        
         foreach (var btn in new[] { btnActualizar, btnSalir })
         {
             btn.Margin = new Padding(0, 0, 10, 0);
@@ -45,10 +44,10 @@ public partial class FormHistorialPrecios : Form
         btnActualizar.Click += async (_, __) => await CargarProductosAsync();
         btnSalir.Click += (_, __) => Close();
 
-        // Carga perezosa del historial al expandir el producto
+        
         tv.BeforeExpand += async (_, e) =>
         {
-            // Si el nodo representa un producto y aún tiene el "dummy", lo cargamos
+            
             if (e.Node.Tag is ProductoDTO p &&
                 e.Node.Nodes.Count == 1 &&
                 e.Node.Nodes[0].Tag as string == "dummy")
@@ -83,9 +82,9 @@ public partial class FormHistorialPrecios : Form
 
         foreach (var p in productos)
         {
-            // Nodo principal: muestra Id y Nombre
+          
             var nodo = new TreeNode($"[{p.IdProducto}] {p.Nombre}") { Tag = p };
-            // Agrego hijo “dummy” para que aparezca el triángulo de expandir y se cargue on-demand
+            
             nodo.Nodes.Add(new TreeNode("...") { Tag = "dummy" });
             tv.Nodes.Add(nodo);
         }
@@ -102,7 +101,7 @@ public partial class FormHistorialPrecios : Form
         boton.Font = new Font("Segoe UI", 11, FontStyle.Bold);
         boton.Region = System.Drawing.Region.FromHrgn(CreateRoundRectRgn(0, 0, boton.Width, boton.Height, 15, 15));
 
-        // Hover
+   
         boton.MouseEnter += (_, __) => boton.BackColor = Color.FromArgb(41, 128, 185);
         boton.MouseLeave += (_, __) => boton.BackColor = Color.FromArgb(52, 152, 219);
     }

@@ -41,7 +41,7 @@ public class TPIContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // ----- CategoriaProducto -----
+        
         modelBuilder.Entity<CategoriaProducto>(e =>
         {
             e.ToTable("Categorias");
@@ -51,7 +51,7 @@ public class TPIContext : DbContext
             e.Property(x => x.Descripcion).HasMaxLength(500);
         });
 
-        // ----- Usuarios TPH -----
+        
 
         modelBuilder.Entity<Usuario>(e =>
         {
@@ -84,13 +84,13 @@ public class TPIContext : DbContext
             e.HasIndex(x => x.Cuil).IsUnique();
             e.HasIndex(x => x.Legajo).IsUnique();
         });
-        // -------- Productos --------
+       
         modelBuilder.Entity<Producto>(e =>
         {
             e.ToTable("Productos");
             e.HasKey(x => x.IdProducto);
             e.Property(x => x.Nombre).HasMaxLength(150).IsRequired();
-            e.HasIndex(x => x.Nombre).IsUnique(); // nombre único en toda la tabla
+            e.HasIndex(x => x.Nombre).IsUnique(); 
             e.Property(x => x.Descripcion).HasMaxLength(1000);
             e.Property(x => x.Stock).IsRequired();
             e.Property(x => x.PrecioActual).HasColumnType("decimal(18,2)").IsRequired();
@@ -98,10 +98,10 @@ public class TPIContext : DbContext
             e.HasOne(x => x.Categoria)
              .WithMany()
              .HasForeignKey(x => x.IdCatProducto)
-             .OnDelete(DeleteBehavior.Cascade); // al borrar categoría, se borran productos
+             .OnDelete(DeleteBehavior.Cascade); 
         });
 
-        // -------- Historial de precios --------
+       
         modelBuilder.Entity<PrecioProducto>(e =>
         {
             e.ToTable("PreciosProductos");
@@ -112,9 +112,9 @@ public class TPIContext : DbContext
             e.HasOne(x => x.Producto)
              .WithMany()
              .HasForeignKey(x => x.IdProducto)
-             .OnDelete(DeleteBehavior.Cascade); // al borrar producto, se borra su historial
+             .OnDelete(DeleteBehavior.Cascade); 
         });
-        // EN Carrito:
+      
         modelBuilder.Entity<Carrito>(e =>
         {
             e.ToTable("Carritos");
@@ -126,36 +126,36 @@ public class TPIContext : DbContext
              .IsRequired();
         });
 
-        // TPIContext.OnModelCreating
+        
         modelBuilder.Entity<CarritoItem>(e =>
         {
             e.ToTable("CarritoItems");
             e.HasKey(i => i.IdCarritoItem);
 
-            // Aseguramos nombres reales de columnas
+            
             e.Property(i => i.IdCarrito).HasColumnName("IdCarrito");
             e.Property(i => i.IdProducto).HasColumnName("IdProducto");
             e.Property(i => i.Cantidad).IsRequired();
 
-            // Relación correcta CarritoItem -> Carrito usando la FK explícita
+            
             e.HasOne(i => i.Carrito)
              .WithMany(c => c.Items)
              .HasForeignKey(i => i.IdCarrito)
              .HasPrincipalKey(c => c.IdCarrito)
              .OnDelete(DeleteBehavior.Cascade);
 
-            // Relación con Producto (sin navegación en la entidad)
+            
             e.HasOne<Producto>()
              .WithMany()
              .HasForeignKey(i => i.IdProducto)
              .OnDelete(DeleteBehavior.Restrict);
 
-            // (Opcional pero recomendado) Evitar duplicados del mismo producto en el carrito
+            
             e.HasIndex(i => new { i.IdCarrito, i.IdProducto }).IsUnique();
         });
 
 
-        // Ventas
+       
         modelBuilder.Entity<Venta>(e =>
         {
             e.ToTable("Ventas");
@@ -206,10 +206,10 @@ public class TPIContext : DbContext
             b.Property(x => x.Codigo).IsRequired().HasMaxLength(64);
             b.HasIndex(x => x.Codigo).IsUnique();
 
-            // Si tu columna es decimal(9,2) ajustá acá
+            
             b.Property("Porcentaje").HasColumnType("decimal(18,2)");
 
-            // Si NO tenés navegación en la entidad:
+            
             b.HasOne<Producto>()
              .WithMany()
              .HasForeignKey("IdProducto")

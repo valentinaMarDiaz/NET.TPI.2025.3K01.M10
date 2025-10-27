@@ -5,10 +5,10 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Data.Migrations
 {
-    /// <inheritdoc />
+
     public partial class VentaDetalleSnapshot : Migration
     {
-        /// <inheritdoc />
+    
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropIndex(
@@ -90,7 +90,7 @@ namespace Data.Migrations
                 oldType: "datetime2");
         }
 
-        /// <inheritdoc />
+        
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(

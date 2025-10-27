@@ -29,9 +29,7 @@ namespace Data
             return ctx.Carritos.FirstOrDefault(x => x.IdCliente == idCliente && x.Estado == "Abierto");
         }
 
-        /// <summary>
-        /// Devuelve el carrito abierto (si existe) y sus items con el producto.
-        /// </summary>
+        
         public (Carrito carrito, List<(CarritoItem item, Producto prod)>) GetAbiertoConItems(int idCliente)
         {
             using var ctx = Create();
@@ -41,18 +39,14 @@ namespace Data
             var items = ctx.CarritoItems
                 .Where(i => i.IdCarrito == carrito.IdCarrito)
                 .Join(ctx.Productos, i => i.IdProducto, p => p.IdProducto, (i, p) => new { i, p })
-                .AsEnumerable()                  // salir del árbol de expresión para poder mapear a tupla
+                .AsEnumerable()                  
                 .Select(x => (x.i, x.p))
                 .ToList();
 
             return (carrito, items);
         }
 
-        /// <summary>
-        /// Agrega o incrementa la cantidad de un producto en el carrito abierto del cliente.
-        /// Valida stock total (cantidad acumulada).
-        /// Patrón correcto para transacciones con ExecutionStrategy (SQL Server).
-        /// </summary>
+        
         public void AddOrIncreaseItem(int idCliente, int idProducto, int cantidad)
         {
             var strategy = new TPIContext().Database.CreateExecutionStrategy();
@@ -115,10 +109,7 @@ namespace Data
             ctx.SaveChanges();
         }
 
-        /// <summary>
-        /// Aplica un código de descuento al producto correspondiente dentro del carrito abierto.
-        /// Reemplaza si ya tenía uno. Valida vigencia (UTC) y pertenencia al carrito.
-        /// </summary>
+        
         public void AplicarCodigo(int idCliente, string codigo)
         {
             using var ctx = Create();
@@ -142,20 +133,14 @@ namespace Data
             if (item is null)
                 throw new ArgumentException("El código no corresponde a ningún producto del carrito.");
 
-            // Un código por producto: REEMPLAZA el existente si había
+            
             item.SetIdDescuento(d.IdDescuento);
 
             ctx.SaveChanges();
         }
 
 
-        // =======================
-        // *** MÉTODOS OPCIONALES ÚTILES ***
-        // =======================
-
-        /// <summary>
-        /// Devuelve CantidadTotal y Total (aplicando descuentos vigentes). Útil para badge y resumen rápido.
-        /// </summary>
+        
         public (int CantidadTotal, decimal Total) GetBadgeYTotal(int idCliente)
         {
             using var ctx = Create();
@@ -197,10 +182,7 @@ namespace Data
             return (cantidadTotal, total);
         }
 
-        /// <summary>
-        /// Igual que GetAbiertoConItems pero trae también el descuento (si aplica)
-        /// y limpia descuentos vencidos para que no confundan en la UI.
-        /// </summary>
+       
         public (Carrito carrito, List<(CarritoItem item, Producto prod, Descuento? desc)>) GetAbiertoConItemsYDescuento(int idCliente)
         {
             using var ctx = Create();
@@ -209,7 +191,7 @@ namespace Data
             var carrito = ctx.Carritos.FirstOrDefault(x => x.IdCliente == idCliente && x.Estado == "Abierto");
             if (carrito is null) return (new Carrito(idCliente), new());
 
-            // Traer items + producto
+          
             var list =
                 (from i in ctx.CarritoItems.Where(i => i.IdCarrito == carrito.IdCarrito)
                  join p in ctx.Productos on i.IdProducto equals p.IdProducto
@@ -226,7 +208,7 @@ namespace Data
                     desc = ctx.Descuentos.AsNoTracking().FirstOrDefault(d => d.IdDescuento == row.IdDescuento.Value);
                     if (desc == null || !(desc.FechaInicioUtc <= now && now <= desc.FechaCaducidadUtc))
                     {
-                        // si venció o ya no existe, lo limpio
+                        
                         var tracked = ctx.CarritoItems.Find(row.i.IdCarritoItem);
 
                         if (tracked != null)

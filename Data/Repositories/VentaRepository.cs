@@ -27,20 +27,20 @@ public class VentaRepository
             if (items.Count == 0)
                 throw new ArgumentException("El carrito está vacío.");
 
-            // Validar stock
+            
             foreach (var x in items)
                 if (x.p.Stock < x.i.Cantidad)
                     throw new ArgumentException($"Stock insuficiente para '{x.p.Nombre}'.");
 
             var venta = new Venta(idCliente);
             ctx.Ventas.Add(venta);
-            ctx.SaveChanges(); // obtener IdVenta
+            ctx.SaveChanges(); 
 
             var ahora = DateTime.UtcNow;
 
             foreach (var x in items)
             {
-                // Precio y descuento vigente al momento de vender
+               
                 var precio = x.p.PrecioActual;
 
                 int? idDesc = null;
@@ -63,7 +63,7 @@ public class VentaRepository
                     ? decimal.Round(subtotal * (100m - porcentajeDesc.Value) / 100m, 2, MidpointRounding.AwayFromZero)
                     : subtotal;
 
-                // SNAPSHOT
+                
                 var detalle = new VentaDetalle(
                     idVenta: venta.IdVenta,
                     idProducto: x.p.IdProducto,
@@ -78,7 +78,7 @@ public class VentaRepository
 
                 ctx.VentaDetalles.Add(detalle);
 
-                // Restar stock
+              
                 x.p.SetStock(x.p.Stock - x.i.Cantidad);
             }
 

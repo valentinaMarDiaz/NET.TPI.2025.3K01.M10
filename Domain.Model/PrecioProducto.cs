@@ -7,7 +7,7 @@ public class PrecioProducto
     public decimal Valor { get; private set; }
     public DateTime FechaModificacionUtc { get; private set; }
 
-    // navegación opcional
+    
     public Producto? Producto { get; private set; }
 
     public PrecioProducto() { }

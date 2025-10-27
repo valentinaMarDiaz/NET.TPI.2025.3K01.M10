@@ -28,7 +28,7 @@ namespace WindowsForm
             {
                 if (f.WasCancelled)
                 {
-                    ExitThread(); // cierra la app
+                    ExitThread();
                 }
                 else if (f.AuthUser != null)
                 {

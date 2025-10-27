@@ -20,7 +20,7 @@ public class ProductoService
         var p = new Producto(0, dto.IdCatProducto, dto.Nombre, dto.Descripcion ?? "", dto.Stock, dto.PrecioActual);
         p = _repo.Add(p);
 
-        // precio inicial al historial
+        
         _histRepo.Add(new PrecioProducto(0, p.IdProducto, p.PrecioActual, DateTime.UtcNow));
 
         var saved = _repo.Get(p.IdProducto)!;

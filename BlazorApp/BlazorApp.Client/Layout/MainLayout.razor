@@ -1,10 +1,8 @@
 ﻿@inherits LayoutComponentBase
-@using BlazorApp.Client
 @using API.Clients
-@inject AuthStateProvider AuthStateProvider
-@inject NavigationManager Navigation
-@inject IJSRuntime JSRuntime
-@* @inject CarritoApiClient CarritoApi <- ELIMINAMOS ESTA LÍNEA *@
+@using DTOs
+@inject BlazorApp.Client.AuthStateProvider Auth   
+@inject NavigationManager Nav                   
 @implements IDisposable
 
 <CascadingValue Value="this">
@@ -18,10 +16,10 @@
                 <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
 
                 <div class="ms-auto">
-                    @if (AuthStateProvider.CurrentUser != null)
+                    @if (Auth.CurrentUser is not null)
                     {
                         <span class="me-3">
-                            Hola, @AuthStateProvider.CurrentUser.Nombre!
+                            Hola, @Auth.CurrentUser.Nombre!
                         </span>
                         <button class="btn btn-link" @onclick="Logout">Cerrar Sesión</button>
                     }
@@ -50,31 +48,48 @@
 
     protected override async Task OnInitializedAsync()
     {
-        AuthStateProvider.OnChange += HandleAuthStateChanged;
+        // suscribimos al evento (login/logout)
+        Auth.OnChange += HandleAuthStateChanged;
         await ActualizarBadgeCarritoAsync();
     }
 
-    // Método público para ser llamado desde hijos
+    /// <summary>
+    /// Método público para que las páginas hijas (Carrito, Productos, etc.)
+    /// puedan refrescar el número del carrito en el menú.
+    /// </summary>
     public async Task ActualizarBadgeCarritoAsync()
     {
         _carritoCantidad = 0;
-        if (AuthStateProvider.CurrentUser != null && AuthStateProvider.CurrentUser.TipoUsuario == "Cliente")
+
+        var u = Auth.CurrentUser;
+        if (u is null || u.TipoUsuario != "Cliente")
         {
-            try
-            {
-                // --- CAMBIO CLAVE: Usamos la clase estática directamente ---
-                var carrito = await CarritoApiClient.GetAsync(AuthStateProvider.CurrentUser.Id);
-                _carritoCantidad = carrito?.CantidadTotal ?? 0;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error al obtener cantidad del carrito: {ex.Message}");
-                _carritoCantidad = 0;
-            }
+            await InvokeAsync(StateHasChanged);
+            return;
         }
+
+        try
+        {
+            // Usa la propiedad correcta del usuario (Id, IdUsuario o IdCliente según tu DTO)
+            var userId = u.Id; // <- SI tu DTO usa otro nombre, cambia aquí (p.ej. u.IdCliente)
+
+            var carrito = await CarritoApiClient.GetAsync(userId);
+
+            // Si tu DTO del carrito NO tiene CantidadTotal, sumamos los ítems.
+            _carritoCantidad =
+                carrito?.CantidadTotal
+                ?? carrito?.Items?.Sum(i => i.Cantidad) ?? 0;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al obtener cantidad del carrito: {ex.Message}");
+            _carritoCantidad = 0;
+        }
+
         await InvokeAsync(StateHasChanged);
     }
 
+    // Se dispara en login/logout
     private async void HandleAuthStateChanged()
     {
         await ActualizarBadgeCarritoAsync();
@@ -82,14 +97,14 @@
 
     public void Dispose()
     {
-        AuthStateProvider.OnChange -= HandleAuthStateChanged;
+        Auth.OnChange -= HandleAuthStateChanged;
     }
 
     private async Task Logout()
     {
-        await AuthStateProvider.Logout();
+        await Auth.Logout();
         _carritoCantidad = 0;
         await InvokeAsync(StateHasChanged);
-        Navigation.NavigateTo("/login");
+        Nav.NavigateTo("/login");
     }
 }

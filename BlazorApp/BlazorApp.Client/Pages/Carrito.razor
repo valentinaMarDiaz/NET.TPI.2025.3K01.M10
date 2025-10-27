@@ -3,7 +3,6 @@
 @using API.Clients
 @using Microsoft.JSInterop
 @using BlazorApp.Client.Layout
-@inject HttpClient Http
 @inject NavigationManager navigationManager
 @inject IJSRuntime jsRuntime
 @inject AuthStateProvider authStateProvider
@@ -28,10 +27,29 @@ else if (carrito == null || carrito.Items.Count == 0)
 }
 else
 {
+    <!-- Encabezado: seleccionar todo + eliminar seleccionados -->
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="form-check">
+            <input class="form-check-input"
+                   type="checkbox"
+                   id="chkAll"
+                   @onchange="SelectAllChanged"
+                   checked="@_selectAll" />
+            <label class="form-check-label" for="chkAll">Seleccionar todo</label>
+        </div>
+
+        <button class="btn btn-outline-danger"
+                disabled="@(!_seleccion.Any())"
+                @onclick="EliminarSeleccionados">
+            Eliminar seleccionados (@_seleccion.Count)
+        </button>
+    </div>
+
     <div class="table-responsive mb-3">
         <table class="table table-hover">
             <thead>
                 <tr>
+                    <th style="width:42px"></th>
                     <th>Producto</th>
                     <th class="text-end">Precio Unit.</th>
                     <th class="text-center">Cantidad</th>
@@ -44,22 +62,32 @@ else
                 @foreach (var item in carrito.Items)
                 {
                     <tr>
+                        <td class="text-center align-middle">
+                            <input type="checkbox"
+                                   class="form-check-input"
+                                   checked="@_seleccion.Contains(item.IdProducto)"
+                                   @onchange="(e) => RowCheckboxChanged(item.IdProducto, e)" />
+                        </td>
                         <td>@item.ProductoNombre</td>
                         <td class="text-end">@item.PrecioUnitario.ToString("C")</td>
                         <td class="text-center">@item.Cantidad</td>
                         <td class="text-center">
                             @if (item.Porcentaje.HasValue)
                             {
-                                <span class="badge bg-success" title="@item.CodigoDescuento">@item.Porcentaje.Value.ToString("N0")%</span>
+                                <span class="badge bg-success" title="@item.CodigoDescuento">
+                                    @item.Porcentaje.Value.ToString("N0")%
+                                </span>
                             }
                             else
                             {
+
                                 <span>-</span>
                             }
                         </td>
                         <td class="text-end">@item.Subtotal.ToString("C")</td>
                         <td class="text-center">
-                            <button class="btn btn-sm btn-outline-danger" title="Eliminar del carrito"
+                            <button class="btn btn-sm btn-outline-danger"
+                                    title="Eliminar del carrito"
                                     @onclick="() => EliminarItem(item)">
                                 <span class="bi bi-trash-fill" aria-hidden="true"></span>
                             </button>
@@ -71,7 +99,7 @@ else
                 <tr>
                     <td colspan="4" class="text-end fw-bold">TOTAL:</td>
                     <td class="text-end fw-bold">@carrito.Total.ToString("C")</td>
-                    <td></td>
+                    <td colspan="2"></td>
                 </tr>
             </tfoot>
         </table>
@@ -122,22 +150,24 @@ else
     private CarritoDTO? carrito;
     private bool cargando = true;
     private string? error;
+
     private string? codigoDescuento;
     private string? errorCodigo;
     private string? successCodigo;
     private bool aplicandoCodigo = false;
     private bool confirmandoCompra = false;
 
-    // Recibimos el MainLayout "padre"
-    [CascadingParameter]
-    public MainLayout? Layout { get; set; }
+    // Selección múltiple
+    private readonly HashSet<int> _seleccion = new();
+    private bool _selectAll = false;
+
+    // Recibimos el MainLayout para actualizar el badge
+    [CascadingParameter] public MainLayout? Layout { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
-        // Usamos la INSTANCIA inyectada (variable authStateProvider)
         if (authStateProvider.CurrentUser == null || authStateProvider.CurrentUser.TipoUsuario != "Cliente")
         {
-            // Usamos la INSTANCIA inyectada (variable navigationManager)
             navigationManager.NavigateTo("/login", forceLoad: true);
             return;
         }
@@ -153,8 +183,11 @@ else
 
         try
         {
-            // Llamada estática y usamos la INSTANCIA authStateProvider
             carrito = await CarritoApiClient.GetAsync(authStateProvider.CurrentUser!.Id);
+
+            // Re-sincronizo selección con los items reales del carrito
+            _seleccion.RemoveWhere(id => carrito.Items.All(i => i.IdProducto != id));
+            _selectAll = carrito.Items.Count > 0 && _seleccion.Count == carrito.Items.Count;
         }
         catch (Exception ex)
         {
@@ -167,23 +200,68 @@ else
         }
     }
 
+    // Checkbox por fila
+    private void RowCheckboxChanged(int idProducto, ChangeEventArgs e)
+    {
+        var isChecked = e?.Value is bool b && b;
+        if (isChecked) _seleccion.Add(idProducto);
+        else _seleccion.Remove(idProducto);
+
+        _selectAll = carrito?.Items.Count > 0 && _seleccion.Count == carrito!.Items.Count;
+    }
+
+    // Seleccionar todo
+    private void SelectAllChanged(ChangeEventArgs e)
+    {
+        var check = e?.Value is bool b && b;
+        _selectAll = check;
+        _seleccion.Clear();
+
+        if (check && carrito?.Items != null)
+            foreach (var it in carrito.Items) _seleccion.Add(it.IdProducto);
+    }
+
+    private async Task EliminarSeleccionados()
+    {
+        if (!_seleccion.Any()) return;
+
+        bool confirmado = await jsRuntime.InvokeAsync<bool>("confirm", $"¿Eliminar {_seleccion.Count} producto(s) del carrito?");
+        if (!confirmado) return;
+
+        try
+        {
+            // Si agregaste el endpoint de lote:
+            await CarritoApiClient.RemoveManyAsync(authStateProvider.CurrentUser!.Id, _seleccion);
+
+            // (Alternativa sin endpoint de lote)
+            // foreach (var idProd in _seleccion)
+            //     await CarritoApiClient.RemoveAsync(authStateProvider.CurrentUser!.Id, idProd);
+
+            _seleccion.Clear();
+            _selectAll = false;
+
+            await CargarCarrito();
+            if (Layout is not null) await Layout.ActualizarBadgeCarritoAsync();
+        }
+        catch (Exception ex)
+        {
+            error = $"Error al eliminar seleccionados: {ex.Message}";
+            await jsRuntime.InvokeVoidAsync("alert", error);
+        }
+    }
+
     private async Task EliminarItem(CarritoItemDTO item)
     {
-        // Usamos la INSTANCIA inyectada (variable jsRuntime)
         bool confirmado = await jsRuntime.InvokeAsync<bool>("confirm", $"¿Quitar '{item.ProductoNombre}' del carrito?");
         if (!confirmado) return;
 
         try
         {
-            // Llamada estática y usamos la INSTANCIA authStateProvider
             await CarritoApiClient.RemoveAsync(authStateProvider.CurrentUser!.Id, item.IdProducto);
-            await CargarCarrito(); // Recarga el carrito
+            _seleccion.Remove(item.IdProducto);
 
-            // Llamada al método del Layout para actualizar badge
-            if (Layout is not null)
-            {
-                await Layout.ActualizarBadgeCarritoAsync();
-            }
+            await CargarCarrito();
+            if (Layout is not null) await Layout.ActualizarBadgeCarritoAsync();
         }
         catch (Exception ex)
         {
@@ -203,30 +281,19 @@ else
 
         try
         {
-            // Llamada estática y usamos la INSTANCIA authStateProvider
             await CarritoApiClient.AplicarCodigoAsync(authStateProvider.CurrentUser!.Id, codigoDescuento);
             successCodigo = $"Código '{codigoDescuento.ToUpper()}' aplicado.";
             codigoDescuento = string.Empty;
-            await CargarCarrito(); // Recargar para ver el descuento
 
-            if (Layout is not null)
-            {
-                await Layout.ActualizarBadgeCarritoAsync(); // Actualiza por si acaso
-            }
+            await CargarCarrito();
+            if (Layout is not null) await Layout.ActualizarBadgeCarritoAsync();
         }
         catch (Exception ex)
         {
-            // Intentamos validar el código para dar un mejor error
-            // (Asume que DescuentoApiClient es estático)
             var desc = await DescuentoApiClient.ValidarCodigoAsync(codigoDescuento);
-            if (desc == null)
-            {
-                errorCodigo = "El código es inválido o está vencido.";
-            }
-            else
-            {
-                errorCodigo = "El código es válido, pero no aplica a ningún producto de tu carrito.";
-            }
+            errorCodigo = desc is null
+                ? "El código es inválido o está vencido."
+                : "El código es válido, pero no aplica a ningún producto de tu carrito.";
             Console.WriteLine($"Error al aplicar código: {ex.Message}");
         }
         finally
@@ -237,7 +304,6 @@ else
 
     private async Task ConfirmarCompra()
     {
-        // Usamos la INSTANCIA inyectada (variable jsRuntime)
         bool confirmado = await jsRuntime.InvokeAsync<bool>("confirm", $"¿Confirmar la compra por un total de {carrito?.Total:C}?");
         if (!confirmado) return;
 
@@ -247,16 +313,10 @@ else
 
         try
         {
-            // Llamada estática y usamos la INSTANCIA authStateProvider
             var resultado = await CarritoApiClient.ConfirmarAsync(authStateProvider.CurrentUser!.Id);
-            await jsRuntime.InvokeVoidAsync("alert", $"¡Compra confirmada con éxito!\nID Venta: {resultado.IdVenta}\nTotal: {resultado.Total:C}");
+            await jsRuntime.InvokeVoidAsync("alert", $"¡Compra confirmada!\nID Venta: {resultado.IdVenta}\nTotal: {resultado.Total:C}");
 
-            if (Layout is not null)
-            {
-                await Layout.ActualizarBadgeCarritoAsync(); // El carrito quedará vacío
-            }
-
-            // Usamos la INSTANCIA inyectada (variable navigationManager)
+            if (Layout is not null) await Layout.ActualizarBadgeCarritoAsync();
             navigationManager.NavigateTo("/dashboard");
         }
         catch (Exception ex)
@@ -271,5 +331,3 @@ else
         }
     }
 }
-
-

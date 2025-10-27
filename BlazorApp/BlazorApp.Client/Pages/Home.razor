@@ -1,13 +1,12 @@
 ﻿@page "/dashboard"
 @using BlazorApp.Client
 @using DTOs
-@inject AuthStateProvider authStateProvider
-@inject NavigationManager navigationManager
+@inject AuthStateProvider Auth
+@inject NavigationManager Nav
 @implements IDisposable
 
 <PageTitle>Home</PageTitle>
 
-@* Solo renderizamos algo si el usuario está cargado *@
 @if (user != null)
 {
     <h1>¡Bienvenido, @user.Nombre!</h1>
@@ -58,6 +57,15 @@
                     </div>
                 </a>
             </div>
+            <div class="col-md-4">
+                <a href="/historial-precios" class="card card-link shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary">Historial de Precios</h5>
+                        <p class="card-text">Ver cambios de precios por producto.</p>
+                    </div>
+                </a>
+            </div>
+
         </div>
     }
     else if (user.TipoUsuario == "Cliente")
@@ -85,8 +93,11 @@
         </div>
     }
 }
+else
+{
+    <p>Redirigiendo al login…</p>
+}
 
-@* Un poco de CSS para que las tarjetas parezcan clickeables *@
 <style>
     .card-link {
         text-decoration: none;
@@ -100,29 +111,37 @@
         }
 </style>
 
-
 @code {
     private LoginResponseDTO? user;
+    private bool _shouldRedirect;
 
     protected override void OnInitialized()
     {
-        // Nos suscribimos al evento por si el usuario cierra sesión
-        authStateProvider.OnChange += StateHasChanged;
+        Auth.OnChange += HandleAuthChange;
+        user = Auth.CurrentUser;
 
-        // Cargamos el usuario actual
-        user = authStateProvider.CurrentUser;
-
-        // Si el usuario NO está logueado, lo redirigimos al Login (que está en "/")
-        if (user == null)
-        {
-            navigationManager.NavigateTo("/");
-        }
+        // Si no hay usuario, marcamos para redirigir en el primer render
+        _shouldRedirect = user is null;
     }
 
-    // Importante para desuscribirnos y evitar memory leaks
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _shouldRedirect)
+        {
+            // Sé explícito al ir al login
+            Nav.NavigateTo("/login", replace: true);
+        }
+        return Task.CompletedTask;
+    }
+
+    private void HandleAuthChange()
+    {
+        user = Auth.CurrentUser;
+        InvokeAsync(StateHasChanged);
+    }
+
     public void Dispose()
     {
-        authStateProvider.OnChange -= StateHasChanged;
+        Auth.OnChange -= HandleAuthChange;
     }
 }
-

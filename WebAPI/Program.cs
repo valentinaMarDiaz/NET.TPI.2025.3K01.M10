@@ -138,7 +138,6 @@ app.MapDelete("/productos/{id:int}", (int id) =>
 app.MapGet("/productos/{id:int}/historial", (int id) =>
     Results.Ok(new ProductoService().GetHistorial(id)));
 
-// --- CARRITO ---
 app.MapGet("/carrito/{idCliente:int}", (int idCliente) =>
 {
     var s = new CarritoService();
@@ -160,7 +159,7 @@ app.MapPost("/carrito/{idCliente:int}/aplicar-codigo", (int idCliente, string co
 app.MapPost("/carrito/{idCliente:int}/confirmar", (int idCliente) =>
 {
     var s = new VentaService();
-    var venta = s.Confirmar(idCliente); // crea Venta + Detalles y descuenta stock
+    var venta = s.Confirmar(idCliente);
     return Results.Ok(new { IdVenta = venta.IdVenta, Total = venta.Total });
 });
 
@@ -168,7 +167,7 @@ app.MapPost("/carrito/{idCliente:int}/item", (int idCliente, int producto, int c
 {
     try
     {
-        var s = new Application.Services.CarritoService();
+        var s = new CarritoService();
         s.AddOrIncreaseItem(idCliente, producto, cantidad);
         return Results.NoContent();
     }
@@ -177,6 +176,14 @@ app.MapPost("/carrito/{idCliente:int}/item", (int idCliente, int producto, int c
         return Results.BadRequest(new { error = ex.Message });
     }
 });
+
+// lote
+app.MapPost("/carrito/{idCliente:int}/items/eliminar", (int idCliente, int[] productos) =>
+{
+    new CarritoService().RemoveMany(idCliente, productos);
+    return Results.NoContent();
+});
+
 
 // -------- VENTAS --------
 app.MapGet("/ventas", (int? idCliente, DateTime? desdeUtc, DateTime? hastaUtc) =>

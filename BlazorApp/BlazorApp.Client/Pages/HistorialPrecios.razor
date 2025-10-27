@@ -1,0 +1,147 @@
+﻿@page "/historial-precios"
+@using DTOs
+@using API.Clients
+@using Microsoft.JSInterop
+@using BlazorApp.Client
+@inject AuthStateProvider authStateProvider
+@inject NavigationManager navigationManager
+@inject IJSRuntime jsRuntime
+@rendermode InteractiveWebAssembly
+
+<PageTitle>Historial de Precios</PageTitle>
+
+<h3>Historial de Precios de Productos</h3>
+
+@if (cargandoProductos)
+{
+    <p><em>Cargando productos...</em></p>
+}
+else if (!string.IsNullOrEmpty(error))
+{
+    <div class="alert alert-danger">@error</div>
+}
+else
+{
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <label for="productoSelect" class="form-label">Seleccione un Producto:</label>
+            @* Usamos @onchange para que llame al método CargarHistorialAsync
+                cada vez que el usuario cambia la selección del dropdown.
+            *@
+            <select class="form-select" @onchange="OnProductoSeleccionado">
+                <option value="0">-- Elija un producto --</option>
+                @if (_productos != null)
+                {
+                    @foreach (var p in _productos)
+                    {
+                        <option value="@p.IdProducto">@p.Nombre (@p.IdProducto)</option>
+                    }
+                }
+            </select>
+        </div>
+    </div>
+
+    @* --- Tabla de Historial --- *@
+    @if (cargandoHistorial)
+    {
+        <p><em>Cargando historial...</em></p>
+    }
+    else if (_historial != null && _historial.Count > 0)
+    {
+        <div class="table-responsive">
+            <table class="table table-sm table-striped table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th>Fecha y Hora (Local)</th>
+                        <th class="text-end">Precio Registrado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var h in _historial)
+                    {
+                        <tr>
+                            <td>@h.FechaModificacionUtc.ToLocalTime().ToString("g")</td>
+                            <td class="text-end">@h.Valor.ToString("C")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else if (_selectedProductId > 0)
+    {
+        <p>Este producto no tiene cambios de precio registrados.</p>
+    }
+}
+
+@code {
+    private List<ProductoDTO>? _productos;
+    private List<PrecioProductoDTO>? _historial;
+
+    private int _selectedProductId = 0;
+    private bool cargandoProductos = true;
+    private bool cargandoHistorial = false;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // 1. Proteger la ruta
+        if (authStateProvider.CurrentUser == null || authStateProvider.CurrentUser.TipoUsuario != "Vendedor")
+        {
+            navigationManager.NavigateTo("/"); // Al Login
+            return;
+        }
+
+        // 2. Cargar la lista de productos para el dropdown
+        cargandoProductos = true;
+        try
+        {
+            _productos = (await ProductoApiClient.GetAllAsync()).OrderBy(p => p.Nombre).ToList();
+        }
+        catch (Exception ex)
+        {
+            error = $"Error al cargar productos: {ex.Message}";
+        }
+        finally
+        {
+            cargandoProductos = false;
+        }
+    }
+
+    private async Task OnProductoSeleccionado(ChangeEventArgs e)
+    {
+        // 1. Obtener el ID seleccionado del dropdown
+        if (!int.TryParse(e.Value?.ToString(), out _selectedProductId))
+        {
+            _selectedProductId = 0;
+        }
+
+        // 2. Si es "Elija un producto" (ID 0), limpiar la tabla
+        if (_selectedProductId == 0)
+        {
+            _historial = null;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        // 3. Buscar el historial para el ID seleccionado
+        cargandoHistorial = true;
+        _historial = null;
+        await InvokeAsync(StateHasChanged); // Mostrar "Cargando historial..."
+
+        try
+        {
+            _historial = (await ProductoApiClient.GetHistorialAsync(_selectedProductId))
+                            .OrderByDescending(h => h.FechaModificacionUtc)
+                            .ToList();
+        }
+        catch (Exception ex)
+        {
+            error = $"Error al cargar el historial: {ex.Message}";
+        }
+        finally
+        {
+            cargandoHistorial = false;
+        }
+    }
+}

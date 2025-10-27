@@ -82,6 +82,16 @@ namespace API.Clients
             var r = await client.PostAsync(url, content: null);
             r.EnsureSuccessStatusCode();
         }
+        public static async Task RemoveManyAsync(int idCliente, IEnumerable<int> idsProducto)
+        {
+            var r = await client.PostAsJsonAsync(
+                $"carrito/{idCliente}/items/eliminar",
+                idsProducto.ToArray()
+            );
+            r.EnsureSuccessStatusCode();
+        }
+
+
     }
 
     // DTO opcional para deserialización tipada (lo uso primero en ConfirmarAsync)

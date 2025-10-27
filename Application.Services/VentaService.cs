@@ -1,5 +1,6 @@
 ﻿using Data;
 using DTOs;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.Services;
 
@@ -66,6 +67,41 @@ public class VentaService
         })
         .ToList();
     }
+    /// <summary>
+    /// Suma mensual de ventas del año indicado.
+    /// Toma Venta.FechaHoraVentaUtc y suma VentaDetalle.SubtotalConDescuento.
+    /// </summary>
+    public IEnumerable<VentasMesDTO> TotalesPorMes(int anio/*, string? estado = null*/)
+    {
+        using var ctx = new TPIContext();
+
+        var desde = new DateTime(anio, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var hasta = desde.AddYears(1);
+
+        // Si más adelante agregás un campo Estado en Venta, descomentá y filtrá:
+        // var ventas = ctx.Ventas.AsNoTracking()
+        //     .Where(v => v.FechaHoraVentaUtc >= desde && v.FechaHoraVentaUtc < hasta && v.Estado == estado);
+
+        var query =
+            from v in ctx.Ventas.AsNoTracking()
+            where v.FechaHoraVentaUtc >= desde && v.FechaHoraVentaUtc < hasta
+            join d in ctx.VentaDetalles.AsNoTracking() on v.IdVenta equals d.IdVenta
+            group d by v.FechaHoraVentaUtc.Month into g
+            select new VentasMesDTO
+            {
+                Mes = g.Key,
+                Total = g.Sum(x => x.SubtotalConDescuento)
+            };
+
+        var list = query.ToList();
+
+        // Garantizo 12 meses (0 si no hubo ventas)
+        var dict = list.ToDictionary(x => x.Mes, x => x.Total);
+        return Enumerable.Range(1, 12)
+            .Select(m => new VentasMesDTO { Mes = m, Total = dict.TryGetValue(m, out var t) ? t : 0m })
+            .ToList();
+    }
+    
 
     public void Delete(int idVenta) => _repo.DeleteVenta(idVenta);
 }

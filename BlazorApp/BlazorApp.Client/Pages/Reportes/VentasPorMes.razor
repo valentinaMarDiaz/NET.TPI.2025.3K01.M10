@@ -1,0 +1,77 @@
+﻿@page "/reportes/ventas-por-mes"
+@using DTOs
+@inject HttpClient Http
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+@rendermode InteractiveWebAssembly
+
+<h3>Ventas por mes (@anio)</h3>
+
+<div class="row mb-3">
+    <div class="col-auto">
+        <input type="number" class="form-control" style="width:140px"
+               @bind="anio" min="2000" max="2100" />
+    </div>
+    <div class="col-auto">
+        <button class="btn btn-primary" @onclick="Reload">Cargar</button>
+    </div>
+</div>
+
+<canvas id="ventasMesChart" width="900" height="360"></canvas>
+
+@if (rows.Count > 0)
+{
+    <div class="table-responsive mt-3">
+        <table class="table table-sm table-striped">
+            <thead><tr><th>Mes</th><th class="text-end">Total</th></tr></thead>
+            <tbody>
+                @foreach (var r in rows)
+                {
+                    <tr>
+                        <td>@NombreMes(r.Mes)</td>
+                        <td class="text-end">@r.Total.ToString("C")</td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th>Total anual</th>
+                    <th class="text-end">@rows.Sum(x => x.Total).ToString("C")</th>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+}
+
+@code {
+    private int anio = DateTime.UtcNow.Year;
+    private List<VentasMesDTO> rows = new();
+
+    protected override async Task OnInitializedAsync() => await Reload();
+
+    private async Task Reload()
+    {
+        // Llamamos a tu WebAPI
+        var api = $"https://localhost:7206/reportes/ventas-por-mes?anio={anio}";
+        var resp = await Http.GetFromJsonAsync<Response>(api);
+        rows = resp?.data ?? new();
+
+        // Dibuja Chart
+        var labels = Enumerable.Range(1, 12).Select(NombreMes).ToArray();
+        var data = rows.OrderBy(x => x.Mes).Select(x => x.Total).ToArray();
+        await JS.InvokeVoidAsync("renderBarChart", "ventasMesChart", labels, data, $"Ventas {anio}");
+    }
+
+    private static string NombreMes(int m)
+        => System.Globalization.CultureInfo.GetCultureInfo("es-AR")
+           .DateTimeFormat.GetMonthName(m)
+           .Substring(0, 1).ToUpper() +
+           System.Globalization.CultureInfo.GetCultureInfo("es-AR")
+           .DateTimeFormat.GetMonthName(m).Substring(1);
+
+    private sealed class Response
+    {
+        public int anio { get; set; }
+        public List<VentasMesDTO> data { get; set; } = new();
+    }
+}

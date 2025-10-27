@@ -203,6 +203,15 @@ app.MapDelete("/ventas/{id:int}", (int id) =>
     try { new VentaService().Delete(id); return Results.NoContent(); }
     catch (ArgumentException ex) { return Results.BadRequest(new { error = ex.Message }); }
 });
+// --- REPORTES: ventas por mes ---
+app.MapGet("/reportes/ventas-por-mes", (int? anio/*, string? estado*/) =>
+{
+    var year = anio ?? DateTime.UtcNow.Year;
+    var svc = new VentaService();
+    var data = svc.TotalesPorMes(year/*, estado*/);
+    return Results.Ok(new { anio = year, data });
+});
+
 
 // ----- DESCUENTOS -----
 // Listado (si tu servicio soporta filtro, podés cambiar a: (string? producto) => Results.Ok(new DescuentoService().GetAll(producto)))

@@ -69,7 +69,7 @@ else
                                    @onchange="(e) => RowCheckboxChanged(item.IdProducto, e)" />
                         </td>
                         <td>@item.ProductoNombre</td>
-                        <td class="text-end">@item.PrecioUnitario.ToString("C")</td>
+                        <td class="text-end">@item.PrecioUnitario.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("es-AR"))</td>
                         <td class="text-center">@item.Cantidad</td>
                         <td class="text-center">
                             @if (item.Porcentaje.HasValue)
@@ -84,7 +84,7 @@ else
                                 <span>-</span>
                             }
                         </td>
-                        <td class="text-end">@item.Subtotal.ToString("C")</td>
+                        <td class="text-end">@item.Subtotal.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("es-AR"))</td>
                         <td class="text-center">
                             <button class="btn btn-sm btn-outline-danger"
                                     title="Eliminar del carrito"
@@ -98,7 +98,7 @@ else
             <tfoot>
                 <tr>
                     <td colspan="4" class="text-end fw-bold">TOTAL:</td>
-                    <td class="text-end fw-bold">@carrito.Total.ToString("C")</td>
+                    <td class="text-end fw-bold">@carrito.Total.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("es-AR"))</td>
                     <td colspan="2"></td>
                 </tr>
             </tfoot>

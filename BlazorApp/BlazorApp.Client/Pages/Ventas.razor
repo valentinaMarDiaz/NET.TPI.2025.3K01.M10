@@ -79,8 +79,8 @@ else
                             <td>@v.IdCliente</td>
                             <td>@v.FechaHoraVentaUtc.ToLocalTime().ToString("g")</td>
                             <td class="text-end">
-                                
-                                @v.TotalListado.ToString("C")
+
+                                @v.TotalListado.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("es-AR"))
                             </td>
                             <td class="text-center">
                                 <button class="btn btn-sm btn-outline-info me-2" @onclick="() => VerDetalleAsync(v.IdVenta)" disabled="@(v.IdVenta == idVentaCargandoDetalle)">

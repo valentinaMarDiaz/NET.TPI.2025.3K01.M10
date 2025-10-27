@@ -22,7 +22,6 @@
     </div>
 }
 
-<p>Esta página muestra los productos obtenidos desde la WebAPI.</p>
 
 @if (productos == null && cargando)
 {
@@ -59,7 +58,7 @@ else if (productos != null)
                     </td>
                     <td>@prod.Descripcion</td>
                     <td>@prod.CategoriaNombre</td>
-                    <td>@prod.PrecioActual.ToString("C")</td>
+                    <td>@prod.PrecioActual.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("es-AR"))</td>
                     <td>@prod.Stock</td>
                     @if (AuthStateProvider.CurrentUser?.TipoUsuario == "Cliente")
                     {

@@ -67,7 +67,7 @@ else
                     {
                         <tr>
                             <td>@h.FechaModificacionUtc.ToLocalTime().ToString("g")</td>
-                            <td class="text-end">@h.Valor.ToString("C")</td>
+                            <td class="text-end">@h.Valor.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("es-AR"))</td>
                         </tr>
                     }
                 </tbody>

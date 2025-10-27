@@ -55,17 +55,11 @@ public class VentaService
             ClienteNombre = x.c is null ? "" : $"{x.c.Nombre} {x.c.Apellido}",
             ClienteTelefono = (x.c as Domain.Model.Cliente)?.Telefono,
             ClienteDireccion = (x.c as Domain.Model.Cliente)?.Direccion,
-            Detalles = new List<VentaDetalleDTO>() 
-        })
-        
-        .Select(v =>
-        {
-            
-            return v;
-        })
-        .ToList();
+            TotalListado = x.total, 
+            Detalles = new List<VentaDetalleDTO>()
+        }).ToList(); 
     }
-   
+
     public IEnumerable<VentasMesDTO> TotalesPorMes(int anio)
     {
         using var ctx = new TPIContext();

@@ -3,60 +3,56 @@
 @using API.Clients
 @inject NavigationManager Nav
 @inject IJSRuntime JS
-@inject BlazorApp.Client.AuthStateProvider AuthStateProvider
+@inject BlazorApp.Client.AuthStateProvider Auth
 @rendermode InteractiveWebAssembly
 
 <PageTitle>Descuentos</PageTitle>
-
 <h3>Descuentos</h3>
-
-<div class="row mb-3">
-    <div class="col-md-4">
-        <input class="form-control" placeholder="Filtrar por producto..."
-               @bind="filtro" @bind:event="oninput" />
-    </div>
-    <div class="col-md-8 text-end">
-        <button class="btn btn-primary" @onclick="IrAgregar">Agregar</button>
-        <button class="btn btn-outline-secondary ms-2" @onclick="Load">Buscar</button>
-    </div>
-</div>
 
 @if (cargando)
 {
-    <p><em>Cargando...</em></p>
-}
-else if (error != null)
-{
-    <div class="alert alert-danger">@error</div>
+    <p><em>Cargando…</em></p>
 }
 else
 {
+    if (!string.IsNullOrEmpty(error))
+    {
+        <div class="alert alert-danger">@error</div>
+    }
+
+    <div class="d-flex justify-content-end gap-2 mb-3">
+        <button class="btn btn-outline-secondary" @onclick="Cargar">Actualizar</button>
+        <button class="btn btn-primary" @onclick="@(() => Nav.NavigateTo("/descuentos/agregar"))">Agregar</button>
+    </div>
+
     <div class="table-responsive">
-        <table class="table table-striped table-hover">
-            <thead class="table-dark">
+        <table class="table table-hover">
+            <thead class="table-light">
                 <tr>
-                    <th>Código</th>
+                    <th style="width:120px">Código</th>
                     <th>Producto</th>
-                    <th>%</th>
-                    <th>Inicio</th>
-                    <th>Caduca</th>
+                    <th class="text-end" style="width:90px">%</th>
+                    <th style="width:170px">Inicio (local)</th>
+                    <th style="width:170px">Caduca (local)</th>
                     <th>Descripción</th>
                     <th style="width:140px"></th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var d in descuentos)
+                @foreach (var d in lista)
                 {
+                    var ini = DateTime.SpecifyKind(d.FechaInicioUtc, DateTimeKind.Utc).ToLocalTime();
+                    var fin = DateTime.SpecifyKind(d.FechaCaducidadUtc, DateTimeKind.Utc).ToLocalTime();
                     <tr>
-                        <td>@d.Codigo</td>
+                        <td><code>@d.Codigo</code></td>
                         <td>@d.ProductoNombre</td>
-                        <td>@d.Porcentaje.ToString("N2")</td>
-                        <td>@d.FechaInicioUtc.ToLocalTime()</td>
-                        <td>@d.FechaCaducidadUtc.ToLocalTime()</td>
+                        <td class="text-end">@d.Porcentaje.ToString("N2")</td>
+                        <td>@ini.ToString("g")</td>
+                        <td>@fin.ToString("g")</td>
                         <td>@d.Descripcion</td>
                         <td class="text-end">
-                            <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => IrEditar(d.IdDescuento)">Editar</button>
-                            <button class="btn btn-sm btn-outline-danger" @onclick="() => Eliminar(d.IdDescuento, d.Codigo)">Eliminar</button>
+                            <button class="btn btn-sm btn-outline-primary me-1" @onclick="@(() => Editar(d.IdDescuento))">Editar</button>
+                            <button class="btn btn-sm btn-outline-danger" @onclick="@(() => Eliminar(d))">Eliminar</button>
                         </td>
                     </tr>
                 }
@@ -66,51 +62,57 @@ else
 }
 
 @code {
-    private string filtro = string.Empty;
+    private List<DescuentoDTO> lista = new();
     private bool cargando = true;
     private string? error;
-    private List<DescuentoDTO> descuentos = new();
 
     protected override async Task OnInitializedAsync()
     {
-        if (AuthStateProvider.CurrentUser is null)
-        {
-            Nav.NavigateTo("/login");
-            return;
-        }
-        await Load();
+        // Solo vendedores
+        var u = Auth.CurrentUser;
+        if (u is null) { Nav.NavigateTo("/login"); return; }
+        if (!string.Equals(u.TipoUsuario, "Vendedor", StringComparison.OrdinalIgnoreCase))
+        { Nav.NavigateTo("/promos"); return; }
+
+        await Cargar();
     }
 
-    private async Task Load()
+    private async Task Cargar()
     {
         try
         {
             cargando = true; error = null;
-            descuentos = (await DescuentoApiClient.GetAllAsync(string.IsNullOrWhiteSpace(filtro) ? null : filtro)).ToList();
+            // Sin filtro: traemos todo
+            lista = (await DescuentoApiClient.GetAllAsync())
+                        .OrderBy(d => d.ProductoNombre)
+                        .ThenBy(d => d.Codigo)
+                        .ToList();
         }
         catch (Exception ex)
         {
             error = ex.Message;
         }
-        finally { cargando = false; }
+        finally
+        {
+            cargando = false;
+        }
     }
 
-    private void IrAgregar() => Nav.NavigateTo("/descuentos/agregar");
-    private void IrEditar(int id) => Nav.NavigateTo($"/descuentos/editar/{id}");
+    private void Editar(int id) => Nav.NavigateTo($"/descuentos/editar/{id}");
 
-    private async Task Eliminar(int id, string codigo)
+    private async Task Eliminar(DescuentoDTO d)
     {
-        var ok = await JS.InvokeAsync<bool>("confirm", $"¿Eliminar descuento {codigo}?");
+        var ok = await JS.InvokeAsync<bool>("confirm", $"¿Eliminar descuento {d.Codigo}?");
         if (!ok) return;
 
         try
         {
-            await DescuentoApiClient.DeleteAsync(id);
-            await Load();
+            await DescuentoApiClient.DeleteAsync(d.IdDescuento);
+            await Cargar();
         }
         catch (Exception ex)
         {
-            await JS.InvokeVoidAsync("alert", $"Error: {ex.Message}");
+            error = ex.Message;
         }
     }
 }

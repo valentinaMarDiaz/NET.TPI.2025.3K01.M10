@@ -1,0 +1,113 @@
+﻿@page "/promos"
+@page "/descuentos-vigentes"
+@using DTOs
+@using API.Clients
+@inject NavigationManager Nav
+@inject BlazorApp.Client.AuthStateProvider Auth
+@inject IJSRuntime JS
+@rendermode InteractiveWebAssembly
+
+<PageTitle>Descuentos vigentes</PageTitle>
+
+<h3>Descuentos vigentes</h3>
+
+@if (cargando)
+{
+    <p><em>Cargando...</em></p>
+}
+else
+{
+    <div class="row g-2 mb-3">
+        <div class="col-md-6">
+            <input class="form-control" placeholder="Buscar por producto o código..."
+                   @bind="filtro" @bind:event="oninput" />
+        </div>
+        <div class="col-md-3">
+            <button class="btn btn-outline-primary w-100" @onclick="Cargar">Buscar</button>
+        </div>
+        <div class="col-md-3 text-md-end">
+            <button class="btn btn-secondary w-100" @onclick="@(() => Nav.NavigateTo("/productos"))">
+                Ir al catálogo
+            </button>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(error))
+    {
+        <div class="alert alert-danger">@error</div>
+    }
+
+    @if (lista.Count == 0 && string.IsNullOrEmpty(error))
+    {
+        <div class="alert alert-info">No hay descuentos vigentes que coincidan con el filtro.</div>
+    }
+    else if (lista.Count > 0)
+    {
+        <div class="table-responsive">
+            <table class="table table-sm table-striped align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width:120px">Código</th>
+                        <th>Producto</th>
+                        <th style="width:90px" class="text-end">%</th>
+                        <th style="width:170px">Inicio (local)</th>
+                        <th style="width:170px">Caduca (local)</th>
+                        <th>Descripción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var d in lista)
+                    {
+                        var ini = DateTime.SpecifyKind(d.FechaInicioUtc, DateTimeKind.Utc).ToLocalTime();
+                        var fin = DateTime.SpecifyKind(d.FechaCaducidadUtc, DateTimeKind.Utc).ToLocalTime();
+                        <tr>
+                            <td><code>@d.Codigo</code></td>
+                            <td>@d.ProductoNombre</td>
+                            <td class="text-end">@d.Porcentaje.ToString("N2")</td>
+                            <td>@ini.ToString("g")</td>
+                            <td>@fin.ToString("g")</td>
+                            <td>@d.Descripcion</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}
+
+@code {
+    private List<DescuentoDTO> lista = new();
+    private string? filtro;
+    private bool cargando = true;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Si no hay login, lo mando a /login
+        if (Auth.CurrentUser is null)
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+        await Cargar();
+    }
+
+    private async Task Cargar()
+    {
+        try
+        {
+            cargando = true;
+            error = null;
+            var r = await DescuentoApiClient.GetVigentesAsync(string.IsNullOrWhiteSpace(filtro) ? null : filtro);
+            lista = r.ToList();
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+}

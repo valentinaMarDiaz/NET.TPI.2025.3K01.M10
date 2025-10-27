@@ -16,19 +16,17 @@ namespace Application.Services
 
             if (carrito == null)
             {
-                // Tu entidad exige ctor con idCliente
                 carrito = new Domain.Model.Carrito(idCliente);
                 ctx.Carritos.Add(carrito);
                 ctx.SaveChanges();
 
-                // Aseguramos Items cargados
                 ctx.Entry(carrito).Collection("Items").Load();
             }
 
             return carrito;
         }
 
-        // Obtiene un PRECIO decimal de la entidad Producto, aceptando varios posibles nombres
+        // Obtiene un PRECIO decimal de la entidad Producto, tolerando distintos nombres
         private static decimal GetPrecioFromProduct(object producto)
         {
             var t = producto.GetType();
@@ -48,17 +46,14 @@ namespace Application.Services
             return val ?? "";
         }
 
-        private static bool DescuentoVigente(Domain.Model.Descuento d, DateTime ahoraUtc)
-            => d.FechaInicioUtc <= ahoraUtc && ahoraUtc <= d.FechaCaducidadUtc;
-
         private static CarritoDTO MapToDto(TPIContext ctx, Domain.Model.Carrito c)
         {
-            // Traemos items + producto + (descuento) y calculamos precio/porcentaje por JOIN,
-            // sin depender de propiedades inexistentes en CarritoItem.
+            // Traemos items + producto + (descuento) por JOIN y calculamos todo en memoria.
             var rows =
                 (from i in ctx.CarritoItems.AsNoTracking().Where(x => x.IdCarrito == c.IdCarrito)
                  join p in ctx.Productos.AsNoTracking() on i.IdProducto equals p.IdProducto
-                 join d in ctx.Descuentos.AsNoTracking() on EF.Property<int?>(i, "IdDescuento") equals d.IdDescuento into dj
+                 join d in ctx.Descuentos.AsNoTracking()
+                        on EF.Property<int?>(i, "IdDescuento") equals d.IdDescuento into dj
                  from d in dj.DefaultIfEmpty()
                  select new { i, p, d })
                 .ToList();
@@ -69,12 +64,20 @@ namespace Application.Services
             {
                 var precioUnit = GetPrecioFromProduct(r.p);
                 decimal? porcentaje = r.d?.Porcentaje;
-                var cant = r.i.Cantidad;  // por si Cantidad tiene set privado
+                var cant = r.i.Cantidad; // aunque tenga set privado, el get es público
                 var nombre = GetNombreFromProduct(r.p);
 
-                decimal subtotal = porcentaje.HasValue && porcentaje.Value > 0
-                    ? decimal.Round(cant * precioUnit * (100 - porcentaje.Value) / 100m, 2, MidpointRounding.AwayFromZero)
-                    : cant * precioUnit;
+                decimal subtotal;
+                if (porcentaje.HasValue && porcentaje.Value > 0)
+                {
+                    subtotal = decimal.Round(
+                        cant * precioUnit * (100m - porcentaje.Value) / 100m,
+                        2, MidpointRounding.AwayFromZero);
+                }
+                else
+                {
+                    subtotal = decimal.Round(cant * precioUnit, 2, MidpointRounding.AwayFromZero);
+                }
 
                 items.Add(new CarritoItemDTO
                 {
@@ -95,7 +98,7 @@ namespace Application.Services
                 IdCliente = c.IdCliente,
                 Estado = c.Estado,
                 CantidadTotal = items.Sum(x => x.Cantidad),
-                Total = items.Sum(x => x.Subtotal),
+                Total = decimal.Round(items.Sum(x => x.Subtotal), 2, MidpointRounding.AwayFromZero),
                 Items = items
             };
         }
@@ -120,19 +123,21 @@ namespace Application.Services
 
             var carrito = GetOrCreateCart(ctx, idCliente);
 
-            var item = ctx.CarritoItems.FirstOrDefault(i => i.IdCarrito == carrito.IdCarrito && i.IdProducto == idProducto);
+            var item = ctx.CarritoItems
+                .FirstOrDefault(i => i.IdCarrito == carrito.IdCarrito && i.IdProducto == idProducto);
+
             if (item == null)
             {
-                // Tu entidad exige ctor (idCarrito,idProducto,cantidad)
                 item = new Domain.Model.CarritoItem(carrito.IdCarrito, idProducto, cantidad);
                 ctx.CarritoItems.Add(item);
             }
             else
             {
-                // Incrementar cantidad usando EF (por si set es privado)
-                var e = ctx.Entry(item);
-                var actual = e.Property("Cantidad").CurrentValue as int? ?? 0;
-                e.Property("Cantidad").CurrentValue = actual + cantidad;
+                // Incrementar cantidad (manejo seguro del boxing)
+                var entry = ctx.Entry(item);
+                var raw = entry.Property("Cantidad").CurrentValue;
+                var actual = raw is int i ? i : Convert.ToInt32(raw ?? 0);
+                entry.Property("Cantidad").CurrentValue = actual + cantidad;
             }
 
             ctx.SaveChanges();
@@ -149,15 +154,19 @@ namespace Application.Services
 
             var carrito = GetOrCreateCart(ctx, idCliente);
 
-            // Buscar descuento vigente
+            // Buscar descuento vigente (100% traducible por EF)
             var now = DateTime.UtcNow;
-            var desc = ctx.Descuentos.AsNoTracking()
-                        .FirstOrDefault(d => d.Codigo == code && DescuentoVigente(d, now));
+            var desc = ctx.Descuentos
+                          .AsNoTracking()
+                          .FirstOrDefault(d =>
+                              d.Codigo == code &&
+                              d.FechaInicioUtc <= now &&
+                              now <= d.FechaCaducidadUtc);
 
             if (desc == null)
                 throw new ArgumentException("El código es inválido o está vencido.");
 
-            // Aplicarlo a items del producto correspondiente
+            // Aplicarlo a los items del producto correspondiente
             var items = ctx.CarritoItems
                            .Where(i => i.IdCarrito == carrito.IdCarrito && i.IdProducto == desc.IdProducto)
                            .ToList();
@@ -167,7 +176,6 @@ namespace Application.Services
 
             foreach (var it in items)
             {
-                // Solo seteamos IdDescuento (lo demás lo resolvemos por JOIN al mapear)
                 ctx.Entry(it).Property("IdDescuento").CurrentValue = desc.IdDescuento;
             }
 

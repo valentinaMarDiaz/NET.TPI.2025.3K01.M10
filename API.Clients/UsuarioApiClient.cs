@@ -22,6 +22,15 @@ public static class UsuarioApiClient
         return await r.Content.ReadFromJsonAsync<IEnumerable<UsuarioDTO>>() ?? Enumerable.Empty<UsuarioDTO>();
     }
 
+    public static void SetAuthorizationHeader(string? token)
+    {
+        client.DefaultRequestHeaders.Authorization = null;
+        if (token != null)
+        {
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        }
+    }
+
     public static async Task<UsuarioDTO?> GetAsync(int id)
     {
         var r = await client.GetAsync($"usuarios/{id}");

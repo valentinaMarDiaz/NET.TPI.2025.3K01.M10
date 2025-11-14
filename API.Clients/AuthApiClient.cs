@@ -18,6 +18,14 @@ namespace API.Clients
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         }
 
+        public static void SetAuthorizationHeader(string? token)
+        {
+            client.DefaultRequestHeaders.Authorization = null;
+            if (token != null)
+            {
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+        }
         public static async Task<LoginResponseDTO?> LoginAsync(LoginRequestDTO dto)
         {
             var resp = await client.PostAsJsonAsync("auth/login", dto);

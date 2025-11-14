@@ -168,7 +168,7 @@ else
     {
         if (authStateProvider.CurrentUser == null || authStateProvider.CurrentUser.TipoUsuario != "Cliente")
         {
-            navigationManager.NavigateTo("/login", forceLoad: true);
+            navigationManager.NavigateTo("/login");
             return;
         }
         await CargarCarrito();

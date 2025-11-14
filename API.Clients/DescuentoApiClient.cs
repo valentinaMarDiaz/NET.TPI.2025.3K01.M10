@@ -33,6 +33,15 @@ namespace API.Clients
             return await r.Content.ReadFromJsonAsync<List<DescuentoDTO>>() ?? new();
         }
 
+        public static void SetAuthorizationHeader(string? token)
+        {
+            client.DefaultRequestHeaders.Authorization = null;
+            if (token != null)
+            {
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+        }
+
         public static async Task<DescuentoDTO?> GetAsync(int id)
         {
             var r = await client.GetAsync($"descuentos/{id}");

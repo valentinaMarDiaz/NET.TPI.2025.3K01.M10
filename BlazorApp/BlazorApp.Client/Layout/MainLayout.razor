@@ -13,29 +13,41 @@
 
         <main>
             <div class="top-row px-4">
+
                 <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
 
                 <div class="ms-auto">
                     @if (Auth.CurrentUser is not null)
                     {
                         <span class="me-3">
+
                             Hola, @Auth.CurrentUser.Nombre!
                         </span>
                         <button class="btn btn-link" @onclick="Logout">Cerrar Sesión</button>
                     }
                     else
                     {
+
                         <a href="/login">Login</a>
                     }
                 </div>
             </div>
-            
+
             <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
             <script src="/js/charts.js"></script>
 
-            <article class="content px-4">
-                @Body
-            </article>
+            @if (!Auth.IsInitialized)
+            {
+                <article class="content px-4">
+                    <p><em>Cargando sesión...</em></p>
+                </article>
+            }
+            else
+            {
+                <article class="content px-4">
+                    @Body
+                </article>
+            }
         </main>
     </div>
 </CascadingValue>

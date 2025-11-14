@@ -23,6 +23,15 @@ namespace API.Clients
             return (await r.Content.ReadFromJsonAsync<CarritoDTO>())!;
         }
 
+        public static void SetAuthorizationHeader(string? token)
+        {
+            client.DefaultRequestHeaders.Authorization = null;
+            if (token != null)
+            {
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+        }
+
         public static async Task RemoveAsync(int idCliente, int idProducto)
         {
             var r = await client.DeleteAsync($"carrito/{idCliente}/producto/{idProducto}");

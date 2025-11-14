@@ -24,6 +24,15 @@ public static class VentaApiClient
         return await client.GetFromJsonAsync<IEnumerable<VentaDTO>>(url) ?? Enumerable.Empty<VentaDTO>();
     }
 
+    public static void SetAuthorizationHeader(string? token)
+    {
+        client.DefaultRequestHeaders.Authorization = null;
+        if (token != null)
+        {
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        }
+    }
+
     public static async Task<VentaDTO?> GetAsync(int id)
         => await client.GetFromJsonAsync<VentaDTO>($"ventas/{id}");
 

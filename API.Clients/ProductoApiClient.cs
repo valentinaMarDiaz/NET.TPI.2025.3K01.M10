@@ -22,6 +22,14 @@ public static class ProductoApiClient
         return await r.Content.ReadFromJsonAsync<IEnumerable<ProductoDTO>>() ?? Enumerable.Empty<ProductoDTO>();
     }
 
+    public static void SetAuthorizationHeader(string? token)
+    {
+        client.DefaultRequestHeaders.Authorization = null;
+        if (token != null)
+        {
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        }
+    }
     public static async Task<ProductoDTO?> GetAsync(int id)
     {
         var r = await client.GetAsync($"productos/{id}");

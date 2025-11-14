@@ -23,6 +23,15 @@ public static class CategoriaApiClient
         res.EnsureSuccessStatusCode();
     }
 
+    public static void SetAuthorizationHeader(string? token)
+    {
+        client.DefaultRequestHeaders.Authorization = null;
+        if (token != null)
+        {
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        }
+    }
+
     public static async Task UpdateAsync(CategoriaDTO dto)
     {
         var res = await client.PutAsJsonAsync("categorias", dto);

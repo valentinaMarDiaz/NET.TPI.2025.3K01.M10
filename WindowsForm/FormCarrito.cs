@@ -115,6 +115,7 @@ namespace WindowsForm
                     await CarritoApiClient.RemoveAsync(_idCliente, sel.IdProducto);
                     await CargarAsync();
                     await _refrescarBadge();
+
                 }
                 catch (Exception ex)
                 {

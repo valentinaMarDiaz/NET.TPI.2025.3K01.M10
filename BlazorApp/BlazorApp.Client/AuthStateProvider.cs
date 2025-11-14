@@ -1,30 +1,28 @@
 ﻿using DTOs;
-using System.Text.Json; 
-using Microsoft.JSInterop; 
+using System.Text.Json;
+using Microsoft.JSInterop;
+using API.Clients;
 
-namespace BlazorApp.Client 
+namespace BlazorApp.Client
 {
     public class AuthStateProvider
     {
-       
         public LoginResponseDTO? CurrentUser { get; private set; }
-
-        
+        public bool IsInitialized { get; private set; } = false; 
         public event Action? OnChange;
-
-        
         private readonly IJSRuntime _jsRuntime;
-        private const string UserStorageKey = "authUser"; 
+        private const string UserStorageKey = "authUser";
 
         public AuthStateProvider(IJSRuntime jsRuntime)
         {
             _jsRuntime = jsRuntime;
         }
-        
+
+
         public async Task Login(LoginResponseDTO user)
         {
             CurrentUser = user;
-            
+
             try
             {
                 var userJson = JsonSerializer.Serialize(user);
@@ -34,15 +32,16 @@ namespace BlazorApp.Client
             {
                 Console.WriteLine($"Error guardando usuario en LocalStorage: {ex.Message}");
             }
-            
-            NotifyStateChanged(); 
+
+            SetAllApiClientsAuthHeader(user.Token);
+            NotifyStateChanged();
         }
 
-        
+  
         public async Task Logout()
         {
             CurrentUser = null;
-            
+
             try
             {
                 await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", UserStorageKey);
@@ -51,11 +50,12 @@ namespace BlazorApp.Client
             {
                 Console.WriteLine($"Error borrando usuario de LocalStorage: {ex.Message}");
             }
-            
-            NotifyStateChanged(); 
+
+            SetAllApiClientsAuthHeader(null);
+            NotifyStateChanged();
         }
 
-       
+
         public async Task LoadUserFromStorage()
         {
             try
@@ -64,16 +64,34 @@ namespace BlazorApp.Client
                 if (!string.IsNullOrEmpty(userJson))
                 {
                     CurrentUser = JsonSerializer.Deserialize<LoginResponseDTO>(userJson);
-                    NotifyStateChanged(); 
+                    SetAllApiClientsAuthHeader(CurrentUser?.Token);
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error cargando usuario desde LocalStorage: {ex.Message}");
-                CurrentUser = null; 
+                CurrentUser = null;
+                SetAllApiClientsAuthHeader(null);
+            }
+            finally
+            {
+                IsInitialized = true; 
+                NotifyStateChanged();
             }
         }
-         
+
         private void NotifyStateChanged() => OnChange?.Invoke();
+
+      
+        private void SetAllApiClientsAuthHeader(string? token)
+        {
+            AuthApiClient.SetAuthorizationHeader(token);
+            CarritoApiClient.SetAuthorizationHeader(token);
+            CategoriaApiClient.SetAuthorizationHeader(token);
+            DescuentoApiClient.SetAuthorizationHeader(token);
+            ProductoApiClient.SetAuthorizationHeader(token);
+            UsuarioApiClient.SetAuthorizationHeader(token);
+            VentaApiClient.SetAuthorizationHeader(token);
+        }
     }
 }
